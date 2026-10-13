@@ -1,13 +1,3 @@
-import {
-  LuminousButton,
-  LuminousControlSize,
-  LuminousNeoTokens,
-  LuminousSegmentedControl,
-  LuminousSelectionItem,
-  LuminousSurface,
-  LuminousTextField,
-  LuminousTone,
-} from '../../../luminous_neo/Index';
 import { ServerConfig, ServerEndpointTestState, ServerMode } from '../RustDeskDirectoryTypes';
 
 export interface ServerSettingsCardProps {
@@ -33,45 +23,12 @@ export struct ServerSettingsCard {
   @Event onValidate: (config: ServerConfig) => void = (_config: ServerConfig) => {};
   @Event onSave: (config: ServerConfig) => void = (_config: ServerConfig) => {};
 
-  private isWide(): boolean {
-    return this.viewportWidth >= 720;
-  }
-
   private isBusy(): boolean {
     return this.validating || this.saving;
   }
 
-  private selectorWidth(): number {
-    return Math.max(96, Math.min(this.viewportWidth - 40, 560));
-  }
-
-  private modeControlWidth(): number {
-    const shadowInset = LuminousNeoTokens.shadowPaddingFor(50) * 2;
-    return Math.max(96, this.selectorWidth() - shadowInset);
-  }
-
-  private inputWidth(): number {
-    return Math.max(96, this.viewportWidth - this.surfaceHorizontalInset() * 2);
-  }
-
-  private surfaceHorizontalInset(): number {
-    return 8;
-  }
-
-  private inputShadowPadding(): number {
-    return LuminousNeoTokens.shadowPaddingFor(48);
-  }
-
-  private actionButtonWidth(): number {
-    return Math.max(120, this.inputWidth() - 32);
-  }
-
-  private statusSummaryHeight(): number {
-    return 150;
-  }
-
-  private statusRowHeight(): number {
-    return this.statusSummaryHeight() / 3;
+  private contentWidth(): number {
+    return Math.max(280, Math.min(this.viewportWidth - 40, 560));
   }
 
   private copyConfig(): ServerConfig {
@@ -100,10 +57,6 @@ export struct ServerSettingsCard {
     const next = this.copyConfig();
     next.mode = mode;
     this.emitDraft(next, 'mode-draft');
-  }
-
-  private updateModeIndex(index: number): void {
-    this.updateMode(index === 1 ? 'custom' : 'official');
   }
 
   private emitDraft(next: ServerConfig, state: string = 'idle'): void {
@@ -251,33 +204,10 @@ export struct ServerSettingsCard {
       : $r('app.string.settings_server_test_failed');
   }
 
-  @Builder
-  private ResultBanner() {
-    Row({ space: $r('app.float.space_12') }) {
-      Row()
-        .width($r('app.float.space_12'))
-        .height($r('app.float.space_12'))
-        .borderRadius(999)
-        .backgroundColor(this.resultIsSuccess() ? $r('app.color.success') : $r('app.color.error'));
-      Column({ space: 2 }) {
-        Text(this.resultTitle())
-          .width('100%')
-          .fontSize($r('app.float.font_body'))
-          .fontWeight(FontWeight.Bold)
-          .fontColor(this.resultIsSuccess() ? $r('app.color.success') : $r('app.color.error'));
-        Text(this.config.message)
-          .width('100%')
-          .fontSize($r('app.float.font_label'))
-          .lineHeight(18)
-          .fontColor($r('app.color.text_primary'));
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start);
-    }
-    .width('100%')
-    .padding($r('app.float.space_16'))
-    .borderRadius(16)
-    .backgroundColor(this.resultIsSuccess() ? $r('app.color.success_soft') : $r('app.color.error_soft'));
+  private hasResult(): boolean {
+    return this.config.resultState === 'test-success' || this.config.resultState === 'save-success' ||
+      this.config.resultState === 'empty-success' || this.config.resultState === 'success' ||
+      this.config.resultState === 'error';
   }
 
   private accountStatusText(): ResourceStr {
@@ -293,25 +223,6 @@ export struct ServerSettingsCard {
     return $r('app.string.settings_server_account_pending');
   }
 
-  @Builder
-  private ModeSelector() {
-    Row() {
-      LuminousSegmentedControl({
-        items: [
-          new LuminousSelectionItem('official', $r('app.string.settings_server_official')),
-          new LuminousSelectionItem('custom', $r('app.string.settings_server_custom')),
-        ],
-        selectedIndex: this.config.mode === 'custom' ? 1 : 0,
-        controlWidth: this.modeControlWidth(),
-        controlHeight: 50,
-        motionEnabled: true,
-        onChange: (index: number): void => this.updateModeIndex(index),
-      })
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Center);
-  }
-
   private effectiveApiText(): ResourceStr {
     if (this.config.resultState === 'mode-draft') {
       return $r('app.string.settings_server_pending_apply');
@@ -321,25 +232,6 @@ export struct ServerSettingsCard {
       return apiServer;
     }
     return $r('app.string.settings_server_effective_api_auto');
-  }
-
-  @Builder
-  private ServerInput(controlId: string, placeholder: ResourceStr, value: string,
-    onChange: (value: string) => void) {
-    Row() {
-      LuminousTextField({
-        value: value,
-        placeholder: placeholder,
-        fieldWidth: this.inputWidth(),
-        fieldHeight: 48,
-        motionEnabled: true,
-        onChange: onChange,
-      })
-        .margin({ top: -10 })
-        .translate({ x: -(this.inputShadowPadding() - this.surfaceHorizontalInset()) })
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Center);
   }
 
   private endpointStatusText(value: string, state: ServerEndpointTestState): ResourceStr {
@@ -357,7 +249,7 @@ export struct ServerSettingsCard {
 
   private endpointStatusColor(value: string, state: ServerEndpointTestState): ResourceColor {
     if (value.trim().length === 0 || state === 'untested') {
-      return $r('app.color.text_secondary');
+      return $r('app.color.text_tertiary');
     }
     return state === 'success' ? $r('app.color.success') : $r('app.color.error');
   }
@@ -422,121 +314,124 @@ export struct ServerSettingsCard {
     return '';
   }
 
-  @Builder
-  private EndpointTestStatus(controlId: string, value: string, state: ServerEndpointTestState) {
-    Row({ space: $r('app.float.space_8') }) {
-      if (this.validating && value.trim().length > 0) {
-        LoadingProgress()
-          .width(16)
-          .height(16)
-          .color($r('app.color.brand_primary'));
-        Text($r('app.string.settings_server_status_testing'))
-          .fontSize($r('app.float.font_label'))
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.brand_primary'));
-      } else {
-        Row()
-          .width($r('app.float.space_8'))
-          .height($r('app.float.space_8'))
-          .borderRadius(999)
-          .backgroundColor(this.endpointStatusColor(value, this.endpointDisplayState(controlId, value, state)));
-        Text(this.endpointStatusText(value, this.endpointDisplayState(controlId, value, state)))
-          .fontSize($r('app.float.font_label'))
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.endpointStatusColor(value, this.endpointDisplayState(controlId, value, state)));
-
-        if (value.trim().length > 0) {
-          Button(this.endpointActionText(this.endpointDisplayState(controlId, value, state)), {
-            type: ButtonType.Capsule,
-            stateEffect: true,
-          })
-            .height(30)
-            .padding({ left: $r('app.float.space_8'), right: $r('app.float.space_8') })
-            .fontSize($r('app.float.font_caption'))
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.brand_primary'))
-            .backgroundColor($r('app.color.neu_base'))
-            .border({ width: 1, color: $r('app.color.outline') })
-            .enabled(!this.isBusy())
-            .onClick((): void => {
-              if (!this.isBusy()) {
-                this.requestValidation();
-              }
-            })
-            .accessibilityText($r('app.string.settings_server_test'));
-        }
-      }
-    }
-    .height(32)
-    .padding({ left: $r('app.float.space_4') });
-  }
+  // ── 结果横幅 ────────────────────────────────
 
   @Builder
-  private ServerField(controlId: string, label: ResourceStr, placeholder: ResourceStr, value: string,
-    state: ServerEndpointTestState, testMessage: string, testable: boolean,
-    onChange: (value: string) => void) {
-    Column({ space: 4 }) {
-      Row() {
-        Text(label)
-          .layoutWeight(1)
-          .fontSize($r('app.float.font_label'))
+  private ResultBanner() {
+    Row({ space: 10 }) {
+      Row()
+        .width(8)
+        .height(8)
+        .borderRadius(999)
+        .backgroundColor(this.resultIsSuccess() ? $r('app.color.success') : $r('app.color.error'));
+
+      Column({ space: 2 }) {
+        Text(this.resultTitle())
+          .width('100%')
+          .fontSize(14)
           .fontWeight(FontWeight.Medium)
-          .fontColor(this.validationField === controlId
-            ? $r('app.color.error')
-            : $r('app.color.text_secondary'));
-
-        if (testable) {
-          this.EndpointTestStatus(controlId, value, state)
-        }
+          .fontColor(this.resultIsSuccess() ? $r('app.color.success') : $r('app.color.error'));
+        Text(this.config.message)
+          .width('100%')
+          .fontSize(12)
+          .lineHeight(17)
+          .fontColor($r('app.color.text_secondary'));
       }
-      .width(this.inputWidth())
-      .alignItems(VerticalAlign.Center);
-
-      this.ServerInput(controlId, placeholder, value, onChange)
-
-      if (this.validationField === controlId && this.validationMessage !== '') {
-        Text(this.validationMessage)
-          .width(this.inputWidth())
-          .fontSize($r('app.float.font_caption'))
-          .fontColor($r('app.color.error'));
-      } else if (this.endpointDisplayState(controlId, value, state) === 'error' &&
-        this.endpointDisplayMessage(controlId, testMessage).length > 0) {
-        Text(this.endpointDisplayMessage(controlId, testMessage))
-          .width(this.inputWidth())
-          .fontSize($r('app.float.font_caption'))
-          .fontColor($r('app.color.error'))
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis });
-      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start);
     }
     .width('100%')
-    .alignItems(HorizontalAlign.Center);
+    .padding(14)
+    .borderRadius(14)
+    .backgroundColor(this.resultIsSuccess() ? $r('app.color.success_soft') : $r('app.color.error_soft'))
+    .alignItems(VerticalAlign.Top);
   }
+
+  // ── 连接方式卡 ──────────────────────────────
+
+  @Builder
+  private ModeOption(mode: ServerMode, label: ResourceStr) {
+    Text(label)
+      .layoutWeight(1)
+      .height(40)
+      .fontSize(14)
+      .fontWeight(this.config.mode === mode ? FontWeight.Medium : FontWeight.Normal)
+      .fontColor(this.config.mode === mode
+        ? $r('app.color.text_inverse')
+        : $r('app.color.text_secondary'))
+      .textAlign(TextAlign.Center)
+      .borderRadius(11)
+      .backgroundColor(this.config.mode === mode ? $r('app.color.brand_primary') : Color.Transparent)
+      .onClick(() => this.updateMode(mode));
+  }
+
+  @Builder
+  private ModeCard() {
+    Column({ space: 12 }) {
+      Text('连接方式')
+        .width('100%')
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_primary'));
+
+      Row({ space: 4 }) {
+        this.ModeOption('official', $r('app.string.settings_server_official'))
+        this.ModeOption('custom', $r('app.string.settings_server_custom'))
+      }
+      .width('100%')
+      .padding(3)
+      .borderRadius(14)
+      .backgroundColor($r('app.color.surface_secondary'));
+
+      Text(this.config.mode === 'official'
+        ? $r('app.string.settings_server_public_hint')
+        : $r('app.string.settings_server_custom_hint'))
+        .width('100%')
+        .fontSize(12)
+        .lineHeight(18)
+        .fontColor($r('app.color.text_tertiary'));
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  // ── 官方模式：能力总览 ──────────────────────
 
   @Builder
   private CapabilityRow(label: ResourceStr, value: ResourceStr, available: boolean, isLast: boolean) {
-    Row({ space: $r('app.float.space_12') }) {
+    Row({ space: 12 }) {
       Row()
-        .width($r('app.float.space_8'))
-        .height($r('app.float.space_8'))
+        .width(8)
+        .height(8)
         .borderRadius(999)
         .backgroundColor(available ? $r('app.color.success') : $r('app.color.outline'));
 
       Text(label)
-        .fontSize($r('app.float.font_body'))
+        .fontSize(14)
         .fontColor($r('app.color.text_primary'));
 
       Text(value)
         .layoutWeight(1)
-        .fontSize($r('app.float.font_label'))
+        .fontSize(12)
         .fontWeight(FontWeight.Medium)
-        .fontColor(available ? $r('app.color.success') : $r('app.color.text_secondary'))
+        .fontColor(available ? $r('app.color.success') : $r('app.color.text_tertiary'))
         .textAlign(TextAlign.End)
         .maxLines(2)
         .textOverflow({ overflow: TextOverflow.Ellipsis });
     }
     .width('100%')
-    .height(this.statusRowHeight())
+    .constraintSize({ minHeight: 48 })
+    .padding({ left: 14, right: 14 })
+    .alignItems(VerticalAlign.Center)
     .border({
       width: { bottom: isLast ? 0 : 0.5 },
       color: $r('app.color.divider'),
@@ -544,8 +439,168 @@ export struct ServerSettingsCard {
   }
 
   @Builder
-  private CustomFields() {
-    Column({ space: $r('app.float.space_8') }) {
+  private StatusSummaryCard() {
+    Column() {
+      Row({ space: 12 }) {
+        Text($r('app.string.settings_server_effective_api'))
+          .fontSize(14)
+          .fontColor($r('app.color.text_primary'));
+        Text(this.effectiveApiText())
+          .layoutWeight(1)
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_secondary'))
+          .textAlign(TextAlign.End)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+      }
+      .width('100%')
+      .constraintSize({ minHeight: 48 })
+      .padding({ left: 14, right: 14 })
+      .alignItems(VerticalAlign.Center)
+      .border({ width: { bottom: 0.5 }, color: $r('app.color.divider') });
+
+      this.CapabilityRow(
+        $r('app.string.settings_server_remote_capability'),
+        this.remoteStatusText(),
+        this.config.remoteReachable,
+        false,
+      )
+      this.CapabilityRow(
+        $r('app.string.settings_server_account_capability'),
+        this.accountStatusText(),
+        this.config.accountAvailable,
+        true,
+      )
+    }
+    .width('100%')
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
+    .clip(true);
+  }
+
+  // ── 自定义模式：字段 ────────────────────────
+
+  @Builder
+  private EndpointTestButton(controlId: string, value: string, state: ServerEndpointTestState) {
+    if (this.validating && value.trim().length > 0) {
+      Row({ space: 6 }) {
+        LoadingProgress()
+          .width(14)
+          .height(14)
+          .color($r('app.color.brand_primary'));
+        Text($r('app.string.settings_server_status_testing'))
+          .fontSize(12)
+          .fontColor($r('app.color.brand_primary'));
+      }
+      .alignItems(VerticalAlign.Center);
+    } else if (value.trim().length > 0) {
+      Row({ space: 8 }) {
+        Row()
+          .width(8)
+          .height(8)
+          .borderRadius(999)
+          .backgroundColor(this.endpointStatusColor(value, this.endpointDisplayState(controlId, value, state)));
+        Text(this.endpointStatusText(value, this.endpointDisplayState(controlId, value, state)))
+          .fontSize(12)
+          .fontColor(this.endpointStatusColor(value, this.endpointDisplayState(controlId, value, state)));
+
+        Text(this.endpointActionText(this.endpointDisplayState(controlId, value, state)))
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.brand_primary'))
+          .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+          .borderRadius(8)
+          .backgroundColor($r('app.color.brand_primary_soft'))
+          .opacity(this.isBusy() ? 0.45 : 1)
+          .onClick((): void => {
+            if (!this.isBusy()) {
+              this.requestValidation();
+            }
+          });
+      }
+      .alignItems(VerticalAlign.Center);
+    } else {
+      Row({ space: 8 }) {
+        Row()
+          .width(8)
+          .height(8)
+          .borderRadius(999)
+          .backgroundColor($r('app.color.text_tertiary'));
+        Text($r('app.string.settings_server_status_unconfigured'))
+          .fontSize(12)
+          .fontColor($r('app.color.text_tertiary'));
+      }
+      .alignItems(VerticalAlign.Center);
+    }
+  }
+
+  @Builder
+  private ServerField(controlId: string, label: ResourceStr, placeholder: ResourceStr, value: string,
+    state: ServerEndpointTestState, testMessage: string, testable: boolean,
+    onChange: (value: string) => void) {
+    Column({ space: 8 }) {
+      Row() {
+        Text(label)
+          .layoutWeight(1)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(this.validationField === controlId
+            ? $r('app.color.error')
+            : $r('app.color.text_secondary'));
+
+        if (testable) {
+          this.EndpointTestButton(controlId, value, state)
+        }
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+
+      TextInput({ text: value, placeholder: placeholder })
+        .width('100%')
+        .height(48)
+        .fontSize(15)
+        .fontColor($r('app.color.text_primary'))
+        .placeholderColor($r('app.color.text_tertiary'))
+        .placeholderFont({ size: 14 })
+        .backgroundColor($r('app.color.field_background'))
+        .borderRadius(12)
+        .border({
+          width: 1.5,
+          color: this.validationField === controlId
+            ? $r('app.color.error')
+            : $r('app.color.field_border'),
+        })
+        .onChange(onChange);
+
+      if (this.validationField === controlId && this.validationMessage !== '') {
+        Text(this.validationMessage)
+          .width('100%')
+          .fontSize(11)
+          .fontColor($r('app.color.error'));
+      } else if (this.endpointDisplayState(controlId, value, state) === 'error' &&
+        this.endpointDisplayMessage(controlId, testMessage).length > 0) {
+        Text(this.endpointDisplayMessage(controlId, testMessage))
+          .width('100%')
+          .fontSize(11)
+          .fontColor($r('app.color.error'))
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  @Builder
+  private CustomFieldsCard() {
+    Column({ space: 18 }) {
       this.ServerField(
         'id-server',
         $r('app.string.settings_id_server'),
@@ -588,152 +643,64 @@ export struct ServerSettingsCard {
       )
     }
     .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
     .alignItems(HorizontalAlign.Start);
   }
 
   @Builder
-  private StatusSummary() {
-    Stack({ alignContent: Alignment.Center }) {
-      LuminousSurface({
-        depth: -1,
-        surfaceWidth: this.selectorWidth(),
-        surfaceHeight: this.statusSummaryHeight(),
-        cornerRadius: 18,
-        motionEnabled: true,
-      }) {
-        Column({ space: 0 }) {
-          Row({ space: $r('app.float.space_12') }) {
-            Text($r('app.string.settings_server_effective_api'))
-              .fontSize($r('app.float.font_label'))
-              .fontColor($r('app.color.neu_text_secondary'));
-            Text(this.effectiveApiText())
-              .layoutWeight(1)
-              .fontSize($r('app.float.font_label'))
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.neu_text_primary'))
-              .textAlign(TextAlign.End)
-              .maxLines(2)
-              .textOverflow({ overflow: TextOverflow.Ellipsis });
-          }
+  private ActionArea() {
+    Column({ space: 12 }) {
+      Button(this.saving
+        ? $r('app.string.settings_server_saving')
+        : $r('app.string.settings_server_save'))
+        .width('100%')
+        .height(52)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_inverse'))
+        .backgroundColor($r('app.color.brand_primary'))
+        .borderRadius(14)
+        .opacity(this.isBusy() ? 0.45 : 1)
+        .enabled(!this.isBusy())
+        .onClick(() => this.requestSave());
+
+      if (this.config.mode === 'custom') {
+        Text($r('app.string.settings_server_validation_note'))
           .width('100%')
-          .height(this.statusRowHeight())
-          .border({ width: { bottom: 0.5 }, color: $r('app.color.divider') });
-
-          this.CapabilityRow(
-            $r('app.string.settings_server_remote_capability'),
-            this.remoteStatusText(),
-            this.config.remoteReachable,
-            false,
-          )
-          this.CapabilityRow(
-            $r('app.string.settings_server_account_capability'),
-            this.accountStatusText(),
-            this.config.accountAvailable,
-            true,
-          )
-        }
-        .width(this.selectorWidth())
-        .height(this.statusSummaryHeight())
-        .padding({ left: $r('app.float.space_16'), right: $r('app.float.space_16') });
+          .fontSize(11)
+          .lineHeight(17)
+          .fontColor($r('app.color.text_tertiary'));
       }
     }
     .width('100%')
-    .height(this.statusSummaryHeight())
-    .clip(false);
-  }
-
-  @Builder
-  private ActionButton(label: ResourceStr, primary: boolean, enabled: boolean,
-    onClick: () => void) {
-    LuminousButton({
-      label: label,
-      controlWidth: this.actionButtonWidth(),
-      controlSizeMode: LuminousControlSize.Regular,
-      tone: primary ? LuminousTone.Accent : LuminousTone.Neutral,
-      isEnabled: enabled,
-      motionEnabled: true,
-      onAction: onClick,
-    })
-  }
-
-  @Builder
-  private ActionButtons() {
-    Row() {
-      Column() {
-        this.ActionButton(
-          this.saving
-            ? $r('app.string.settings_server_saving')
-            : $r('app.string.settings_server_save'),
-          true,
-          !this.isBusy(),
-          () => this.requestSave(),
-        )
-      }
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Center);
+    .alignItems(HorizontalAlign.Start);
   }
 
   build() {
-    Column({ space: 8 }) {
-      if (this.showHeader) {
-        Row({ space: $r('app.float.space_16') }) {
-          Column({ space: $r('app.float.space_4') }) {
-            Text($r('app.string.settings_server_title'))
-              .width('100%')
-              .fontSize($r('app.float.font_title'))
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'));
-            Text($r('app.string.settings_server_subtitle'))
-              .width('100%')
-              .fontSize($r('app.float.font_body'))
-              .fontColor($r('app.color.text_secondary'));
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start);
-
-          Row()
-            .width($r('app.float.space_12'))
-            .height($r('app.float.space_12'))
-            .borderRadius(999)
-            .backgroundColor(this.config.remoteReachable ? $r('app.color.success') : $r('app.color.outline'));
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center);
-      }
-
-      this.ModeSelector()
-
-      Text(this.config.mode === 'official'
-        ? $r('app.string.settings_server_public_hint')
-        : $r('app.string.settings_server_custom_hint'))
-        .width('100%')
-        .fontSize($r('app.float.font_body'))
-        .lineHeight(20)
-        .fontColor($r('app.color.neu_text_secondary'))
-        .margin({ top: -8 });
+    Column({ space: 16 }) {
+      this.ModeCard();
 
       if (this.config.mode === 'official') {
-        this.StatusSummary()
+        this.StatusSummaryCard();
       } else {
-        this.CustomFields()
+        this.CustomFieldsCard();
       }
 
-      this.ActionButtons()
-
-      if (this.config.mode === 'custom') {
-        Row() {
-          Text($r('app.string.settings_server_validation_note'))
-            .width(this.inputWidth())
-            .fontSize($r('app.float.font_caption'))
-            .lineHeight(17)
-            .fontColor($r('app.color.text_secondary'));
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Center);
+      if (this.hasResult()) {
+        this.ResultBanner();
       }
+
+      this.ActionArea();
     }
-    .width('100%')
+    .width(this.contentWidth())
     .alignItems(HorizontalAlign.Start)
     .onAreaChange((_oldArea: Area, newArea: Area) => {
       const width = Number(newArea.width);

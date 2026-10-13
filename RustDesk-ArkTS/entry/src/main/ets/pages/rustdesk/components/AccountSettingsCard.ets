@@ -1,13 +1,4 @@
 import { AccountLoginProvider, AccountState } from '../RustDeskDirectoryTypes';
-import {
-  LuminousButton,
-  LuminousControlSize,
-  LuminousNeoTokens,
-  LuminousSurface,
-  LuminousTextField,
-  LuminousTone,
-} from '../../../luminous_neo/Index';
-import { FloatingGlassSurface } from './FloatingSurface';
 
 export interface AccountSettingsCardProps {
   showHeader: boolean;
@@ -46,42 +37,12 @@ export struct AccountSettingsCard {
     }
   }
 
-  private isWide(): boolean {
-    return this.viewportWidth >= 720;
-  }
-
   private isBusy(): boolean {
     return this.accountState.busy || this.accountState.syncing;
   }
 
-  private fieldSurfaceWidth(): number {
-    if (this.isWide()) {
-      return Math.max(280, (this.viewportWidth - 104) / 2);
-    }
+  private contentWidth(): number {
     return Math.max(280, Math.min(this.viewportWidth - 40, 560));
-  }
-
-  private actionButtonWidth(): number {
-    return Math.min(this.fieldSurfaceWidth(), 440);
-  }
-
-  private fieldFrameWidth(): number {
-    return this.fieldSurfaceWidth() + 40;
-  }
-
-  private providerButtonWidth(): number {
-    if (this.loginProviders.length <= 1) {
-      return this.actionButtonWidth();
-    }
-    const columnCount = Math.min(3, this.loginProviders.length);
-    const shadowPadding = LuminousNeoTokens.shadowPaddingFor(
-      LuminousNeoTokens.controlHeight(LuminousControlSize.Compact),
-    );
-    return Math.max(92, this.fieldFrameWidth() / columnCount - shadowPadding * 2 - 4);
-  }
-
-  private providerSlotWidth(): number {
-    return this.fieldFrameWidth() / Math.min(3, Math.max(1, this.loginProviders.length));
   }
 
   private hasChallenge(): boolean {
@@ -170,20 +131,6 @@ export struct AccountSettingsCard {
     return this.providerLabel(provider);
   }
 
-  private providerActionLabel(provider: AccountLoginProvider): ResourceStr {
-    const normalizedProvider = provider.name.trim().toLowerCase();
-    if (normalizedProvider === 'github') {
-      return $r('app.string.settings_account_oidc_github');
-    }
-    if (normalizedProvider === 'google') {
-      return $r('app.string.settings_account_oidc_google');
-    }
-    if (normalizedProvider === 'microsoft' || normalizedProvider === 'azure') {
-      return $r('app.string.settings_account_oidc_microsoft');
-    }
-    return this.providerLabel(provider);
-  }
-
   private activeOidcProviderLabel(): string {
     const activeProvider = this.accountState.oidcProvider.trim().toLowerCase();
     for (let index = 0; index < this.loginProviders.length; index += 1) {
@@ -246,7 +193,7 @@ export struct AccountSettingsCard {
 
   private statusColor(): ResourceColor {
     if (this.accountState.busy || this.accountState.syncing) {
-      return $r('app.color.info');
+      return $r('app.color.brand_primary');
     }
     if (this.hasChallenge()) {
       return $r('app.color.warning');
@@ -254,12 +201,12 @@ export struct AccountSettingsCard {
     if (this.accountState.loggedIn) {
       return $r('app.color.success');
     }
-    return $r('app.color.outline');
+    return $r('app.color.text_tertiary');
   }
 
   private statusBackground(): ResourceColor {
     if (this.accountState.busy || this.accountState.syncing) {
-      return $r('app.color.info_soft');
+      return $r('app.color.brand_primary_soft');
     }
     if (this.hasChallenge()) {
       return $r('app.color.warning_soft');
@@ -272,7 +219,7 @@ export struct AccountSettingsCard {
 
   private messageColor(): ResourceColor {
     if (this.accountState.busy || this.accountState.syncing) {
-      return $r('app.color.info');
+      return $r('app.color.brand_primary');
     }
     if (this.accountState.loggedIn && !this.hasChallenge()) {
       return $r('app.color.success');
@@ -282,7 +229,7 @@ export struct AccountSettingsCard {
 
   private messageBackground(): ResourceColor {
     if (this.accountState.busy || this.accountState.syncing) {
-      return $r('app.color.info_soft');
+      return $r('app.color.brand_primary_soft');
     }
     if (this.accountState.loggedIn && !this.hasChallenge()) {
       return $r('app.color.success_soft');
@@ -290,464 +237,436 @@ export struct AccountSettingsCard {
     return $r('app.color.warning_soft');
   }
 
-  @Builder
-  private Header() {
-    Row({ space: $r('app.float.space_16') }) {
-      Column({ space: $r('app.float.space_4') }) {
-        Text($r('app.string.settings_account_title'))
-          .width('100%')
-          .fontSize($r('app.float.font_title'))
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.text_primary'));
-
-        Text($r('app.string.settings_account_subtitle'))
-          .width('100%')
-          .fontSize($r('app.float.font_body'))
-          .fontColor($r('app.color.text_secondary'));
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start);
-
-      Row({ space: $r('app.float.space_8') }) {
-        Row()
-          .width($r('app.float.space_8'))
-          .height($r('app.float.space_8'))
-          .borderRadius(999)
-          .backgroundColor(this.statusColor());
-
-        Text(this.statusText())
-          .fontSize($r('app.float.font_caption'))
-          .fontWeight(FontWeight.Medium)
-          .fontColor(this.statusColor())
-          .maxLines(1);
-      }
-      .padding({
-        left: $r('app.float.space_12'),
-        right: $r('app.float.space_12'),
-        top: $r('app.float.space_8'),
-        bottom: $r('app.float.space_8'),
-      })
-      .backgroundColor(this.statusBackground())
-      .borderRadius($r('app.float.radius_pill'));
-    }
-    .width('100%')
-    .alignItems(VerticalAlign.Center);
-  }
+  // ── 通用构件 ────────────────────────────────
 
   @Builder
-  private FloatingInput(controlId: string, placeholder: ResourceStr, value: string, inputType: InputType,
-    maxLength: number, enabled: boolean, onChange: (value: string) => void) {
-    LuminousTextField({
-      value: value,
-      placeholder: placeholder,
-      fieldWidth: this.fieldSurfaceWidth(),
-      fieldHeight: controlId === 'verification-code' ? 58 : 54,
-      inputType: inputType,
-      maxLength: maxLength,
-      isEnabled: enabled,
-      motionEnabled: true,
-      onChange: onChange,
-    })
-      .margin({ top: -10 })
-  }
-
-  @Builder
-  private UsernameField() {
-    Column({ space: 2 }) {
-      Text($r('app.string.settings_account_username'))
-        .width(this.fieldSurfaceWidth())
-        .fontSize($r('app.float.font_label'))
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.neu_text_secondary'));
-
-      Row() {
-        this.FloatingInput(
-          'username',
-          $r('app.string.settings_account_username_placeholder'),
-          this.username,
-          InputType.Normal,
-          256,
-          !this.isBusy(),
-          (value: string) => this.username = value,
-        )
-      }
-      .width(this.fieldFrameWidth())
-      .justifyContent(FlexAlign.Center);
-    }
-    .width(this.fieldFrameWidth())
-    .alignItems(HorizontalAlign.Center);
-  }
-
-  @Builder
-  private PasswordField() {
-    Column({ space: 2 }) {
-      Text($r('app.string.settings_account_password'))
-        .width(this.fieldSurfaceWidth())
-        .fontSize($r('app.float.font_label'))
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.neu_text_secondary'));
-
-      Row() {
-        this.FloatingInput(
-          'password',
-          $r('app.string.settings_account_password_placeholder'),
-          this.password,
-          InputType.Password,
-          256,
-          !this.isBusy(),
-          (value: string) => this.password = value,
-        )
-      }
-      .width(this.fieldFrameWidth())
-      .justifyContent(FlexAlign.Center);
-    }
-    .width(this.fieldFrameWidth())
-    .alignItems(HorizontalAlign.Center);
-  }
-
-  @Builder
-  private VerificationField() {
-    Column({ space: 2 }) {
-      Text($r('app.string.settings_account_verification_code'))
-        .width(this.fieldSurfaceWidth())
-        .fontSize($r('app.float.font_label'))
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.neu_text_secondary'));
-
-      Row() {
-        this.FloatingInput(
-          'verification-code',
-          $r('app.string.settings_account_code_placeholder'),
-          this.verificationCode,
-          InputType.Number,
-          8,
-          !this.isBusy(),
-          (value: string) => this.verificationCode = value,
-        )
-      }
-      .width(this.fieldFrameWidth())
-      .justifyContent(FlexAlign.Center);
-    }
-    .width(this.fieldFrameWidth())
-    .alignItems(HorizontalAlign.Center);
-  }
-
-  @Builder
-  private ActionButton(label: ResourceStr, tone: string, enabled: boolean,
-    onClick: () => void) {
-    LuminousButton({
-      label: label,
-      controlWidth: this.actionButtonWidth(),
-      controlSizeMode: LuminousControlSize.Regular,
-      tone: tone === 'primary'
-        ? LuminousTone.Accent
-        : (tone === 'danger' ? LuminousTone.Danger : LuminousTone.Neutral),
-      isEnabled: enabled,
-      motionEnabled: true,
-      onAction: onClick,
-    })
-  }
-
-  @Builder
-  private LoginButton() {
-    LuminousButton({
-      label: this.accountState.busy
-        ? $r('app.string.settings_account_logging_in')
-        : $r('app.string.settings_account_login'),
-      controlWidth: this.actionButtonWidth(),
-      controlSizeMode: LuminousControlSize.Regular,
-      tone: LuminousTone.Accent,
-      isEnabled: this.canLogin(),
-      motionEnabled: true,
-      onAction: () => this.requestLogin(),
-    })
-      .margin({ top: -16 })
-  }
-
-  @Builder
-  private OidcProviderButton(provider: AccountLoginProvider) {
-    LuminousButton({
-      label: this.providerCompactLabel(provider),
-      controlWidth: this.providerButtonWidth(),
-      controlSizeMode: LuminousControlSize.Compact,
-      tone: LuminousTone.Neutral,
-      isEnabled: !this.isBusy(),
-      motionEnabled: true,
-      onAction: () => this.requestOidc(provider.name),
-    })
-  }
-
-  @Builder
-  private OidcProviderButtons() {
-    Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Center }) {
-      ForEach(this.loginProviders, (provider: AccountLoginProvider) => {
-        Row() {
-          this.OidcProviderButton(provider)
-        }
-        .width(this.providerSlotWidth())
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: -8 });
-      })
-    }
-    .width(this.fieldFrameWidth());
-  }
-
-  @Builder
-  private OidcLoginContent() {
-    if (this.loginProviders.length > 0) {
-      Column({ space: 2 }) {
-        Text('浏览器授权')
-          .width(this.fieldSurfaceWidth())
-          .fontSize($r('app.float.font_label'))
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.neu_text_primary'));
-
-        Text(this.isOidcActive()
-          ? $r('app.string.settings_account_oidc_active_hint')
-          : $r('app.string.settings_account_oidc_hint'))
-          .width(this.fieldSurfaceWidth())
-          .fontSize($r('app.float.font_caption'))
-          .lineHeight(17)
-          .fontColor($r('app.color.neu_text_secondary'));
-
-        if (this.isOidcActive()) {
-          Text(this.activeOidcProviderLabel())
-            .width(this.fieldSurfaceWidth())
-            .fontSize($r('app.float.font_body'))
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.neu_text_primary'));
-
-          this.ActionButton(
-            $r('app.string.settings_account_oidc_cancel'),
-            'secondary',
-            true,
-            () => this.onOidcCancel(),
-          )
-        } else {
-          this.OidcProviderButtons()
-        }
-      }
-      .width(this.fieldFrameWidth())
-      .alignItems(HorizontalAlign.Center);
-    }
-  }
-
-  @Builder
-  private LoginStatus() {
-    Stack({ alignContent: Alignment.Center }) {
-      LuminousSurface({
-        depth: -1,
-        surfaceWidth: this.fieldSurfaceWidth(),
-        surfaceHeight: 58,
-        cornerRadius: 21,
-        motionEnabled: true,
-      }) {
-        Row({ space: 10 }) {
-          Row()
-            .width(8)
-            .height(8)
-            .borderRadius(999)
-            .backgroundColor(this.statusColor());
-          Column({ space: 2 }) {
-            Text(this.statusText())
-              .width('100%')
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.neu_text_primary'));
-            Text(this.apiServerText())
-              .width('100%')
-              .fontSize(10)
-              .fontColor($r('app.color.neu_text_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis });
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start);
-        }
-        .width(this.fieldSurfaceWidth())
-        .height(58)
-        .padding({ left: 16, right: 16 })
-        .alignItems(VerticalAlign.Center);
-      }
-    }
-    .width(this.fieldFrameWidth())
-    .height(94)
-    .clip(false)
-  }
-
-  @Builder
-  private LoginContent() {
-    Column({ space: 4 }) {
-      this.LoginStatus();
-
-      Text('登录后可在设备之间同步通讯录和账户信息。')
-        .width(this.fieldSurfaceWidth())
-        .fontSize($r('app.float.font_label'))
-        .lineHeight(19)
-        .fontColor($r('app.color.neu_text_secondary'))
-        .margin({ top: -8 });
-
-      if (this.isWide()) {
-        Row({ space: $r('app.float.space_16') }) {
-          Column() {
-            this.UsernameField()
-          }
-          .layoutWeight(1);
-
-          Column() {
-            this.PasswordField()
-          }
-          .layoutWeight(1);
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top);
-      } else {
-        Column({ space: 2 }) {
-          this.UsernameField()
-          this.PasswordField()
-        }
-        .width('100%');
-      }
-
-      this.LoginButton()
-
-      if (this.inputError.length > 0) {
-        Text(this.inputError)
-          .width(this.fieldSurfaceWidth())
-          .fontSize($r('app.float.font_caption'))
-          .fontColor($r('app.color.warning'));
-      }
-
-      Text($r('app.string.settings_account_password_note'))
-        .width(this.fieldSurfaceWidth())
-        .fontSize($r('app.float.font_caption'))
-        .lineHeight(17)
-        .fontColor($r('app.color.neu_text_secondary'));
-
-      this.OidcLoginContent()
-    }
-    .width('100%')
-    .alignItems(HorizontalAlign.Center);
-  }
-
-  @Builder
-  private ChallengeActions() {
-    if (this.viewportWidth >= 520) {
-      Row({ space: $r('app.float.space_12') }) {
-        Column() {
-          this.ActionButton(
-            $r('app.string.settings_account_cancel'),
-            'secondary',
-            !this.isBusy(),
-            () => this.cancelChallenge(),
-          )
-        }
-        .layoutWeight(1);
-
-        Column() {
-          this.ActionButton(
-            this.accountState.busy
-              ? $r('app.string.settings_account_verifying')
-              : $r('app.string.settings_account_verify'),
-            'primary',
-            this.canVerify(),
-            () => this.requestVerification(),
-          )
-        }
-        .layoutWeight(1);
-      }
-      .width('100%');
-    } else {
-      Column({ space: $r('app.float.space_12') }) {
-        this.ActionButton(
-          this.accountState.busy
-            ? $r('app.string.settings_account_verifying')
-            : $r('app.string.settings_account_verify'),
-          'primary',
-          this.canVerify(),
-          () => this.requestVerification(),
-        )
-        this.ActionButton(
-          $r('app.string.settings_account_cancel'),
-          'secondary',
-          !this.isBusy(),
-          () => this.cancelChallenge(),
-        )
-      }
-      .width('100%');
-    }
-  }
-
-  @Builder
-  private ChallengeContent() {
-    Column({ space: $r('app.float.space_20') }) {
-      Column({ space: $r('app.float.space_6') }) {
-        Text(this.isTotpChallenge()
-          ? $r('app.string.settings_account_totp_title')
-          : $r('app.string.settings_account_email_title'))
-          .width('100%')
-          .fontSize($r('app.float.font_body_large'))
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'));
-
-        Text(this.isTotpChallenge()
-          ? $r('app.string.settings_account_totp_hint')
-          : $r('app.string.settings_account_email_hint'))
-          .width('100%')
-          .fontSize($r('app.float.font_body'))
-          .lineHeight(20)
-          .fontColor($r('app.color.text_secondary'));
-
-        if (!this.isTotpChallenge() && this.accountState.emailHint.trim().length > 0) {
-          Text(this.accountState.emailHint.trim())
-            .width('100%')
-            .fontSize($r('app.float.font_body'))
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis });
-        }
-      }
+  private FieldLabel(text: ResourceStr) {
+    Text(text)
       .width('100%')
-      .alignItems(HorizontalAlign.Start);
+      .fontSize(13)
+      .fontWeight(FontWeight.Medium)
+      .fontColor($r('app.color.text_secondary'));
+  }
 
-      if (this.isWide()) {
-        Row({ space: $r('app.float.space_20') }) {
-          Column() {
-            this.VerificationField()
-          }
-          .layoutWeight(1);
+  @Builder
+  private FieldInput(placeholder: ResourceStr, value: string, inputType: InputType,
+    maxLength: number, enabled: boolean, onChange: (value: string) => void) {
+    TextInput({ text: value, placeholder: placeholder })
+      .type(inputType)
+      .maxLength(maxLength)
+      .width('100%')
+      .height(48)
+      .fontSize(15)
+      .fontColor($r('app.color.text_primary'))
+      .placeholderColor($r('app.color.text_tertiary'))
+      .placeholderFont({ size: 14 })
+      .backgroundColor($r('app.color.field_background'))
+      .borderRadius(12)
+      .border({ width: 1.5, color: $r('app.color.field_border') })
+      .opacity(enabled ? 1 : 0.45)
+      .enabled(enabled)
+      .onChange(onChange);
+  }
 
-          Column() {
-            this.ChallengeActions()
-          }
-          .layoutWeight(1)
-          .padding({ top: $r('app.float.space_20') });
-        }
+  @Builder
+  private CardTitle(title: string, subtitle: string) {
+    Column({ space: 3 }) {
+      Text(title)
         .width('100%')
-        .alignItems(VerticalAlign.Top);
-      } else {
-        Column({ space: $r('app.float.space_16') }) {
-          this.VerificationField()
-          this.ChallengeActions()
-        }
-        .width('100%');
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_primary'));
+      if (subtitle.length > 0) {
+        Text(subtitle)
+          .width('100%')
+          .fontSize(12)
+          .lineHeight(17)
+          .fontColor($r('app.color.text_tertiary'));
       }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start);
   }
 
+  // ── 登录态头部 ──────────────────────────────
+
+  @Builder
+  private StatusCard() {
+    Row({ space: 12 }) {
+      Stack({ alignContent: Alignment.Center }) {
+        SymbolGlyph(this.hasChallenge()
+          ? $r('sys.symbol.checkmark_shield')
+          : (this.accountState.loggedIn
+            ? $r('sys.symbol.person_crop_circle_fill')
+            : $r('sys.symbol.person')))
+          .fontSize(20)
+          .fontColor([this.statusColor()]);
+      }
+      .width(42)
+      .height(42)
+      .borderRadius(12)
+      .backgroundColor(this.statusBackground());
+
+      Column({ space: 3 }) {
+        Text(this.statusText())
+          .width('100%')
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'));
+        Text(this.apiServerText())
+          .width('100%')
+          .fontSize(12)
+          .fontColor($r('app.color.text_tertiary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start);
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
+    .alignItems(VerticalAlign.Center);
+  }
+
+  // ── 未登录：登录表单 ────────────────────────
+
+  @Builder
+  private LoginForm() {
+    Column({ space: 16 }) {
+      this.CardTitle('登录账户', '登录后可在设备之间同步通讯簿和账户信息');
+
+      Column({ space: 14 }) {
+        Column({ space: 8 }) {
+          this.FieldLabel($r('app.string.settings_account_username'));
+          this.FieldInput(
+            $r('app.string.settings_account_username_placeholder'),
+            this.username,
+            InputType.Normal,
+            256,
+            !this.isBusy(),
+            (value: string) => this.username = value,
+          );
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start);
+
+        Column({ space: 8 }) {
+          this.FieldLabel($r('app.string.settings_account_password'));
+          this.FieldInput(
+            $r('app.string.settings_account_password_placeholder'),
+            this.password,
+            InputType.Password,
+            256,
+            !this.isBusy(),
+            (value: string) => this.password = value,
+          );
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start);
+      }
+      .width('100%');
+
+      if (this.inputError.length > 0) {
+        Text(this.inputError)
+          .width('100%')
+          .fontSize(12)
+          .fontColor($r('app.color.error'));
+      }
+
+      Button(this.accountState.busy
+        ? $r('app.string.settings_account_logging_in')
+        : $r('app.string.settings_account_login'))
+        .width('100%')
+        .height(50)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.text_inverse'))
+        .backgroundColor($r('app.color.brand_primary'))
+        .borderRadius(14)
+        .opacity(this.canLogin() ? 1 : 0.45)
+        .enabled(this.canLogin())
+        .onClick(() => this.requestLogin());
+
+      Text($r('app.string.settings_account_password_note'))
+        .width('100%')
+        .fontSize(11)
+        .lineHeight(17)
+        .fontColor($r('app.color.text_tertiary'));
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  @Builder
+  private OidcCard() {
+    if (this.loginProviders.length > 0) {
+      Column({ space: 12 }) {
+        this.CardTitle('浏览器授权',
+          this.isOidcActive()
+            ? '请在系统浏览器中完成授权，返回应用后会自动继续'
+            : '选择账户提供商，在系统浏览器中完成安全授权');
+
+        if (this.isOidcActive()) {
+          Text(this.activeOidcProviderLabel())
+            .width('100%')
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'));
+
+          Button($r('app.string.settings_account_oidc_cancel'))
+            .width('100%')
+            .height(46)
+            .fontSize(14)
+            .fontColor($r('app.color.text_secondary'))
+            .backgroundColor($r('app.color.surface_secondary'))
+            .borderRadius(12)
+            .onClick(() => this.onOidcCancel());
+        } else {
+          Column({ space: 8 }) {
+            ForEach(this.loginProviders, (provider: AccountLoginProvider) => {
+              Row({ space: 10 }) {
+                SymbolGlyph($r('sys.symbol.link'))
+                  .fontSize(16)
+                  .fontColor([$r('app.color.text_secondary')]);
+                Text(this.providerCompactLabel(provider))
+                  .layoutWeight(1)
+                  .fontSize(14)
+                  .fontColor($r('app.color.text_primary'));
+                SymbolGlyph($r('sys.symbol.chevron_right'))
+                  .fontSize(13)
+                  .fontColor([$r('app.color.text_tertiary')]);
+              }
+              .width('100%')
+              .height(46)
+              .padding({ left: 14, right: 14 })
+              .borderRadius(12)
+              .backgroundColor($r('app.color.surface_secondary'))
+              .alignItems(VerticalAlign.Center)
+              .opacity(this.isBusy() ? 0.45 : 1)
+              .onClick(() => this.requestOidc(provider.name));
+            }, (provider: AccountLoginProvider) => provider.name);
+          }
+          .width('100%');
+        }
+      }
+      .width('100%')
+      .padding(16)
+      .borderRadius(18)
+      .backgroundColor($r('app.color.surface'))
+      .shadow({
+        radius: 18,
+        color: $r('app.color.shadow'),
+        offsetX: 0,
+        offsetY: 4,
+      })
+      .alignItems(HorizontalAlign.Start);
+    }
+  }
+
+  // ── 验证挑战 ────────────────────────────────
+
+  @Builder
+  private ChallengeCard() {
+    Column({ space: 16 }) {
+      this.CardTitle(
+        this.isTotpChallenge() ? '双重身份验证' : '验证登录邮箱',
+        this.isTotpChallenge()
+          ? '输入身份验证器当前生成的一次性验证码'
+          : '输入服务器发送到邮箱的验证码',
+      );
+
+      if (!this.isTotpChallenge() && this.accountState.emailHint.trim().length > 0) {
+        Text(this.accountState.emailHint.trim())
+          .width('100%')
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+      }
+
+      Column({ space: 8 }) {
+        this.FieldLabel($r('app.string.settings_account_verification_code'));
+        this.FieldInput(
+          $r('app.string.settings_account_code_placeholder'),
+          this.verificationCode,
+          InputType.Number,
+          8,
+          !this.isBusy(),
+          (value: string) => this.verificationCode = value,
+        );
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start);
+
+      Row({ space: 10 }) {
+        Button($r('app.string.settings_account_cancel'))
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(15)
+          .fontColor($r('app.color.text_secondary'))
+          .backgroundColor($r('app.color.surface_secondary'))
+          .borderRadius(14)
+          .enabled(!this.isBusy())
+          .opacity(this.isBusy() ? 0.45 : 1)
+          .onClick(() => this.cancelChallenge());
+
+        Button(this.accountState.busy
+          ? $r('app.string.settings_account_verifying')
+          : $r('app.string.settings_account_verify'))
+          .layoutWeight(1)
+          .height(48)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_inverse'))
+          .backgroundColor($r('app.color.brand_primary'))
+          .borderRadius(14)
+          .opacity(this.canVerify() ? 1 : 0.45)
+          .enabled(this.canVerify())
+          .onClick(() => this.requestVerification());
+      }
+      .width('100%');
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  // ── 已登录 ──────────────────────────────────
+
+  @Builder
+  private IdentityCard() {
+    Column({ space: 14 }) {
+      Row({ space: 12 }) {
+        Stack({ alignContent: Alignment.Center }) {
+          Text('R')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_inverse'));
+        }
+        .width(48)
+        .height(48)
+        .borderRadius(14)
+        .backgroundColor($r('app.color.brand_primary'));
+
+        Column({ space: 3 }) {
+          Text(this.accountTitle())
+            .width('100%')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+          Text($r('app.string.settings_account_signed_in_hint'))
+            .width('100%')
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'));
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start);
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+
+      Divider()
+        .strokeWidth(0.5)
+        .color($r('app.color.divider'));
+
+      Column() {
+        this.AccountInfoRow(
+          $r('app.string.settings_account_username'),
+          this.optionalValue(this.accountState.name),
+          false,
+        )
+        this.AccountInfoRow(
+          $r('app.string.settings_account_email'),
+          this.optionalValue(this.accountState.email),
+          false,
+        )
+        this.AccountInfoRow(
+          $r('app.string.settings_server_effective_api'),
+          this.apiServerText(),
+          true,
+        )
+      }
+      .width('100%');
+
+      Row({ space: 10 }) {
+        Button($r('app.string.settings_account_logout'))
+          .layoutWeight(1)
+          .height(46)
+          .fontSize(14)
+          .fontColor($r('app.color.error'))
+          .backgroundColor($r('app.color.error_soft'))
+          .borderRadius(12)
+          .enabled(!this.isBusy())
+          .opacity(this.isBusy() ? 0.45 : 1)
+          .onClick(() => this.onLogout());
+
+        Button(this.accountState.syncing
+          ? $r('app.string.settings_account_syncing')
+          : $r('app.string.settings_account_sync'))
+          .layoutWeight(1)
+          .height(46)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.text_inverse'))
+          .backgroundColor($r('app.color.brand_primary'))
+          .borderRadius(12)
+          .enabled(!this.isBusy())
+          .opacity(this.isBusy() ? 0.45 : 1)
+          .onClick(() => this.onSync());
+      }
+      .width('100%');
+    }
+    .width('100%')
+    .padding(16)
+    .borderRadius(18)
+    .backgroundColor($r('app.color.surface'))
+    .shadow({
+      radius: 18,
+      color: $r('app.color.shadow'),
+      offsetX: 0,
+      offsetY: 4,
+    })
+    .alignItems(HorizontalAlign.Start);
+  }
+
   @Builder
   private AccountInfoRow(label: ResourceStr, value: ResourceStr, isLast: boolean) {
-    Row({ space: $r('app.float.space_16') }) {
+    Row({ space: 12 }) {
       Text(label)
-        .fontSize($r('app.float.font_label'))
+        .fontSize(13)
         .fontColor($r('app.color.text_secondary'));
 
       Text(value)
         .layoutWeight(1)
-        .fontSize($r('app.float.font_label'))
+        .fontSize(13)
         .fontWeight(FontWeight.Medium)
         .fontColor($r('app.color.text_primary'))
         .textAlign(TextAlign.End)
@@ -755,7 +674,8 @@ export struct AccountSettingsCard {
         .textOverflow({ overflow: TextOverflow.Ellipsis });
     }
     .width('100%')
-    .constraintSize({ minHeight: 46 })
+    .constraintSize({ minHeight: 42 })
+    .alignItems(VerticalAlign.Center)
     .border({
       width: { bottom: isLast ? 0 : 0.5 },
       color: $r('app.color.divider'),
@@ -763,201 +683,45 @@ export struct AccountSettingsCard {
   }
 
   @Builder
-  private AccountIdentity() {
-    Stack() {
-      Row({ space: $r('app.float.space_16') }) {
-        Stack() {
-          Row()
-            .width($r('app.float.control_regular'))
-            .height($r('app.float.control_regular'))
-            .borderRadius(999)
-            .backgroundColor($r('app.color.brand_primary'));
-
-          Text('R')
-            .fontSize($r('app.float.font_title'))
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_inverse'));
-        }
-        .width($r('app.float.control_regular'))
-        .height($r('app.float.control_regular'));
-
-        Column({ space: $r('app.float.space_4') }) {
-          Text(this.accountTitle())
-            .width('100%')
-            .fontSize($r('app.float.font_body_large'))
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis });
-
-          Text($r('app.string.settings_account_signed_in_hint'))
-            .width('100%')
-            .fontSize($r('app.float.font_label'))
-            .fontColor($r('app.color.text_secondary'));
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start);
-      }
-      .width('100%')
-      .padding($r('app.float.space_16'))
-      .borderRadius($r('app.float.radius_18'))
-      .clip(true);
-    }
-    .width('100%');
-  }
-
-  @Builder
-  private AccountDetails() {
-    Stack() {
-      FloatingGlassSurface({
-        inset: true,
-        radius: $r('app.float.radius_18'),
-      }) {
-        Column({ space: 0 }) {
-          this.AccountInfoRow(
-            $r('app.string.settings_account_username'),
-            this.optionalValue(this.accountState.name),
-            false,
-          )
-          this.AccountInfoRow(
-            $r('app.string.settings_account_email'),
-            this.optionalValue(this.accountState.email),
-            false,
-          )
-          this.AccountInfoRow(
-            $r('app.string.settings_server_effective_api'),
-            this.apiServerText(),
-            true,
-          )
-        }
-        .width('100%')
-        .padding({ left: $r('app.float.space_16'), right: $r('app.float.space_16') });
-      }
-    }
-    .width('100%')
-    .borderRadius($r('app.float.radius_18'))
-    .clip(false);
-  }
-
-  @Builder
-  private SignedInActions() {
-    if (this.viewportWidth >= 520) {
-      Row({ space: $r('app.float.space_12') }) {
-        Column() {
-          this.ActionButton(
-            $r('app.string.settings_account_logout'),
-            'danger',
-            !this.isBusy(),
-            () => this.onLogout(),
-          )
-        }
-        .layoutWeight(1);
-
-        Column() {
-          this.ActionButton(
-            this.accountState.syncing
-              ? $r('app.string.settings_account_syncing')
-              : $r('app.string.settings_account_sync'),
-            'primary',
-            !this.isBusy(),
-            () => this.onSync(),
-          )
-        }
-        .layoutWeight(1);
-      }
-      .width('100%');
-    } else {
-      Column({ space: $r('app.float.space_12') }) {
-        this.ActionButton(
-          this.accountState.syncing
-            ? $r('app.string.settings_account_syncing')
-            : $r('app.string.settings_account_sync'),
-          'primary',
-          !this.isBusy(),
-          () => this.onSync(),
-        )
-        this.ActionButton(
-          $r('app.string.settings_account_logout'),
-          'danger',
-          !this.isBusy(),
-          () => this.onLogout(),
-        )
-      }
-      .width('100%');
-    }
-  }
-
-  @Builder
-  private SignedInContent() {
-    Column({ space: $r('app.float.space_16') }) {
-      Stack() {
-        FloatingGlassSurface({
-          radius: $r('app.float.radius_18'),
-        }) {
-          Column({ space: 0 }) {
-            this.AccountIdentity()
-
-            Divider()
-              .width('100%')
-              .strokeWidth(0.5)
-              .color($r('app.color.divider'));
-
-            this.AccountDetails()
-          }
-          .width('100%')
-          .borderRadius($r('app.float.radius_18'))
-          .clip(true);
-        }
-      }
-      .width('100%')
-      .borderRadius($r('app.float.radius_18'))
-      .clip(false);
-
-      this.SignedInActions()
-    }
-    .width('100%');
-  }
-
-  @Builder
   private MessageBanner() {
     if (this.accountState.message.trim().length > 0) {
-      Row({ space: $r('app.float.space_12') }) {
+      Row({ space: 10 }) {
         Row()
-          .width($r('app.float.space_8'))
-          .height($r('app.float.space_8'))
+          .width(8)
+          .height(8)
           .borderRadius(999)
           .backgroundColor(this.messageColor());
 
         Text(this.accountState.message.trim())
           .layoutWeight(1)
-          .fontSize($r('app.float.font_label'))
+          .fontSize(12)
           .lineHeight(18)
-          .fontColor(this.messageColor());
+          .fontColor($r('app.color.text_secondary'));
       }
       .width('100%')
-      .padding($r('app.float.space_16'))
+      .padding(14)
+      .borderRadius(14)
       .backgroundColor(this.messageBackground())
-      .borderRadius($r('app.float.radius_14'))
+      .alignItems(VerticalAlign.Top);
     }
   }
 
   build() {
-    Column({ space: 8 }) {
-      if (this.showHeader) {
-        this.Header()
-      }
+    Column({ space: 16 }) {
+      this.StatusCard();
 
       if (this.hasChallenge()) {
-        this.ChallengeContent()
+        this.ChallengeCard();
       } else if (this.accountState.loggedIn) {
-        this.SignedInContent()
+        this.IdentityCard();
       } else {
-        this.LoginContent()
+        this.LoginForm();
+        this.OidcCard();
       }
 
-      this.MessageBanner()
+      this.MessageBanner();
     }
-    .width('100%')
+    .width(this.contentWidth())
     .alignItems(HorizontalAlign.Start)
     .onAreaChange((_oldArea: Area, newArea: Area) => {
       const width = Number(newArea.width);
