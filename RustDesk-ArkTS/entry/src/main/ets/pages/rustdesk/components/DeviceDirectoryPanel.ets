@@ -31,6 +31,7 @@ export interface DeviceDirectoryPanelProps {
   onViewOnly: (peerId: string) => void;
   onViewCamera: (peerId: string) => void;
   onOpenTransfer: (peerId: string) => void;
+  onOpenActions: (peerId: string, viewSource: PeerViewSource) => void;
 }
 
 @ComponentV2
@@ -61,6 +62,8 @@ export struct DeviceDirectoryPanel {
   @Event onViewOnly: (peerId: string) => void = (_peerId: string) => {};
   @Event onViewCamera: (peerId: string) => void = (_peerId: string) => {};
   @Event onOpenTransfer: (peerId: string) => void = (_peerId: string) => {};
+  @Event onOpenActions: (peerId: string, viewSource: PeerViewSource) => void =
+    (_peerId: string, _viewSource: PeerViewSource) => {};
   @Event onOpenSearch: () => void = () => {};
 
   aboutToAppear(): void {
@@ -484,6 +487,7 @@ export struct DeviceDirectoryPanel {
             onViewOnly: (peerId: string) => this.onViewOnly(peerId),
             onViewCamera: (peerId: string) => this.onViewCamera(peerId),
             onOpenTransfer: (peerId: string) => this.onOpenTransfer(peerId),
+            onOpenActions: (peerId: string, viewSource: PeerViewSource) => this.onOpenActions(peerId, viewSource),
           });
         }, (peer: PeerRecord) => `${source}-${peer.addressBookName}-${peer.id}`);
       }
@@ -504,6 +508,7 @@ export struct DeviceDirectoryPanel {
             onViewOnly: (peerId: string) => this.onViewOnly(peerId),
             onViewCamera: (peerId: string) => this.onViewCamera(peerId),
             onOpenTransfer: (peerId: string) => this.onOpenTransfer(peerId),
+            onOpenActions: (peerId: string, viewSource: PeerViewSource) => this.onOpenActions(peerId, viewSource),
           })
             .width(this.cardWidth())
             .margin({ bottom: 18 });

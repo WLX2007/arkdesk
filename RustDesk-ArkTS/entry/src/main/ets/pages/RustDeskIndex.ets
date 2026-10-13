@@ -56,6 +56,7 @@ import {
   AccountState,
   DirectorySnapshot,
   PeerRecord,
+  PeerViewSource,
   RustDeskInputMode,
   RustDeskRightClickGesture,
   ServerConfig,
@@ -66,6 +67,8 @@ import {
   buildFavoritePeers,
   collectPeerOnlineIds,
   peerProjectionListsEqual,
+  peerDisplaySubtitle,
+  peerDisplayTitle,
   preservePeerOnlineStates,
 } from './rustdesk/RustDeskPeerDirectoryModel';
 import { RustDeskSurfaceController } from './rustdesk/RustDeskSurfaceController';
@@ -348,6 +351,9 @@ struct RustDeskIndex {
   @Local connectionUiPhase: ConnectionUiPhase = 'idle';
   @Local deviceSearchSheetVisible: boolean = false;
   @Local deviceSearchQuery: string = '';
+  @Local peerActionsSheetVisible: boolean = false;
+  @Local peerActionsPeerId: string = '';
+  @Local peerActionsViewSource: PeerViewSource = 'recent';
   @Local connectionUiTarget: string = '';
   @Local connectionUiMessage: string = '';
   @Local qualitySummary: string = 'Remote fps -- | delay -- | codec --';
@@ -8408,6 +8414,7 @@ struct RustDeskIndex {
       onViewOnly: (peerId: string) => this.launchPeer(peerId, 'view_only'),
       onViewCamera: (peerId: string) => this.launchPeer(peerId, 'view_camera'),
       onOpenTransfer: (peerId: string) => this.launchPeer(peerId, 'file_transfer'),
+      onOpenActions: (peerId: string, viewSource: PeerViewSource) => this.openPeerActionsSheet(peerId, viewSource),
       onOpenSearch: () => {
         this.deviceSearchSheetVisible = true;
       },
@@ -9084,6 +9091,194 @@ struct RustDeskIndex {
     .padding({ left: 16, right: 16, top: 8, bottom: 16 });
   }
 
+  private openPeerActionsSheet(peerId: string, viewSource: PeerViewSource): void {
+    this.peerActionsPeerId = peerId;
+    this.peerActionsViewSource = viewSource;
+    this.peerActionsSheetVisible = true;
+  }
+
+  private peerActionsPeer(): PeerRecord {
+    const collections: PeerRecord[][] = [
+      this.directorySnapshot.recent,
+      this.directorySnapshot.favorite,
+      this.directorySnapshot.lan,
+      this.directorySnapshot.addressBook,
+    ];
+    for (let groupIndex = 0; groupIndex < collections.length; groupIndex += 1) {
+      const peers = collections[groupIndex];
+      for (let index = 0; index < peers.length; index += 1) {
+        if (peers[index].id === this.peerActionsPeerId) {
+          return peers[index];
+        }
+      }
+    }
+    return new PeerRecord();
+  }
+
+  private peerActionsTitle(): string {
+    return peerDisplayTitle(this.peerActionsPeer());
+  }
+
+  private peerActionsSubtitle(): string {
+    const peer = this.peerActionsPeer();
+    return `${peer.id.trim()} · ${peerDisplaySubtitle(peer)}`;
+  }
+
+  private peerActionsInitial(): string {
+    const title = this.peerActionsTitle().trim();
+    return title.length === 0 ? '?' : title.substring(0, 1).toUpperCase();
+  }
+
+  private peerActionsIsFavorite(): boolean {
+    return this.peerActionsPeer().favorite;
+  }
+
+  private peerActionsCanRemove(): boolean {
+    return this.peerActionsViewSource === 'recent' || this.peerActionsViewSource === 'lan';
+  }
+
+  private peerActionsRemoveLabel(): string {
+    return this.peerActionsViewSource === 'lan' ? '从局域网移除' : '从最近设备移除';
+  }
+
+  private removePeerFromCurrentView(): void {
+    if (this.peerActionsViewSource === 'lan') {
+      this.removeDiscoveredPeer(this.peerActionsPeerId);
+    } else if (this.peerActionsViewSource === 'recent') {
+      this.removeRecentPeer(this.peerActionsPeerId);
+    }
+  }
+
+  @Builder
+  private PeerActionsSheetHost() {
+    Column() {
+      // 空内容宿主，仅承载设备卡片操作弹窗
+    }
+    .width(0)
+    .height(0)
+    .bindSheet($$this.peerActionsSheetVisible, this.peerActionsSheet(), {
+      height: this.peerActionsCanRemove() ? 300 : 240,
+      showClose: true,
+      title: { title: '设备操作' },
+      backgroundColor: $r('app.color.surface'),
+      preferType: SheetType.BOTTOM,
+      dragBar: false,
+      onWillDismiss: (_action: DismissSheetAction) => {
+        this.peerActionsSheetVisible = false;
+      },
+    });
+  }
+
+  @Builder
+  private PeerActionsSheetRow(
+    label: string,
+    hint: string,
+    symbol: Resource,
+    accent: boolean,
+    danger: boolean,
+    onActivate: () => void,
+  ) {
+    Row({ space: 14 }) {
+      Stack({ alignContent: Alignment.Center }) {
+        SymbolGlyph(symbol)
+          .fontSize(20)
+          .fontColor([danger
+            ? $r('app.color.error')
+            : (accent ? $r('app.color.text_inverse') : $r('app.color.text_secondary'))]);
+      }
+      .width(42)
+      .height(42)
+      .borderRadius(12)
+      .backgroundColor(danger
+        ? $r('app.color.error_soft')
+        : (accent ? $r('app.color.brand_primary') : $r('app.color.surface_secondary')));
+
+      Column({ space: 2 }) {
+        Text(label)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(danger ? $r('app.color.error') : $r('app.color.text_primary'));
+        Text(hint)
+          .fontSize(12)
+          .fontColor($r('app.color.text_tertiary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start);
+    }
+    .width('100%')
+    .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+    .borderRadius(14)
+    .onClick(() => onActivate());
+  }
+
+  @Builder
+  private peerActionsSheet() {
+    Column({ space: 4 }) {
+      Row({ space: 12 }) {
+        Stack({ alignContent: Alignment.Center }) {
+          Text(this.peerActionsInitial())
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_inverse'));
+        }
+        .width(38)
+        .height(38)
+        .borderRadius(11)
+        .backgroundColor(this.peerActionsPeer().online
+          ? $r('app.color.brand_primary')
+          : $r('app.color.disabled_text'));
+
+        Column({ space: 2 }) {
+          Text(this.peerActionsTitle())
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+          Text(this.peerActionsSubtitle())
+            .fontSize(12)
+            .fontColor($r('app.color.text_tertiary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start);
+      }
+      .width('100%')
+      .padding({ left: 14, right: 14, top: 4, bottom: 8 });
+
+      this.PeerActionsSheetRow(
+        this.peerActionsIsFavorite() ? '取消收藏' : '收藏设备',
+        this.peerActionsIsFavorite() ? '从收藏列表中移出' : '加入收藏，方便快速连接',
+        this.peerActionsIsFavorite() ? $r('sys.symbol.star_fill') : $r('sys.symbol.star'),
+        this.peerActionsIsFavorite(),
+        false,
+        (): void => {
+          this.setPeerFavorite(this.peerActionsPeerId, !this.peerActionsIsFavorite());
+          this.peerActionsSheetVisible = false;
+        },
+      );
+
+      if (this.peerActionsCanRemove()) {
+        this.PeerActionsSheetRow(
+          this.peerActionsRemoveLabel(),
+          '仅从本机列表移除，不影响远端设备',
+          $r('sys.symbol.trash'),
+          false,
+          true,
+          (): void => {
+            this.removePeerFromCurrentView();
+            this.peerActionsSheetVisible = false;
+          },
+        );
+      }
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 0, bottom: 8 });
+  }
+
   private deviceSearchResults(): PeerRecord[] {
     const query = this.deviceSearchQuery.trim().toLowerCase();
     if (query.length === 0) {
@@ -9141,6 +9336,8 @@ struct RustDeskIndex {
       }
 
       this.DeviceSearchSheetHost();
+
+      this.PeerActionsSheetHost();
 
       ConnectionAttemptOverlay({
         visible: this.connectionUiPhase !== 'idle' && !this.showPreviewModal && !this.passwordDialogVisible

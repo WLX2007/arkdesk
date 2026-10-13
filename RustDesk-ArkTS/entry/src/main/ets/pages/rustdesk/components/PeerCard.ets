@@ -14,6 +14,7 @@ export interface PeerCardProps {
   onViewOnly: (peerId: string) => void;
   onViewCamera: (peerId: string) => void;
   onOpenTransfer: (peerId: string) => void;
+  onOpenActions: (peerId: string, viewSource: PeerViewSource) => void;
 }
 
 @ComponentV2
@@ -23,7 +24,6 @@ export struct PeerCard {
   @Param compact: boolean = false;
   @Param cardWidth: number = 0;
   @Param transferActive: boolean = false;
-  @Local actionsExpanded: boolean = false;
   @Event onSetFavorite: (peerId: string, favorite: boolean) => void = (_peerId: string, _favorite: boolean) => {};
   @Event onRemoveRecent: (peerId: string) => void = (_peerId: string) => {};
   @Event onRemoveLan: (peerId: string) => void = (_peerId: string) => {};
@@ -31,6 +31,8 @@ export struct PeerCard {
   @Event onViewOnly: (peerId: string) => void = (_peerId: string) => {};
   @Event onViewCamera: (peerId: string) => void = (_peerId: string) => {};
   @Event onOpenTransfer: (peerId: string) => void = (_peerId: string) => {};
+  @Event onOpenActions: (peerId: string, viewSource: PeerViewSource) => void =
+    (_peerId: string, _viewSource: PeerViewSource) => {};
 
   private displayName(): string {
     return peerDisplayTitle(this.peer);
@@ -52,74 +54,32 @@ export struct PeerCard {
     return name.substring(0, 1).toUpperCase();
   }
 
-  private toggleFavorite(): void {
-    this.onSetFavorite(this.peer.id, !this.peer.favorite);
-  }
-
   private canRemoveFromCurrentView(): boolean {
     return this.viewSource === 'recent' || this.viewSource === 'lan';
   }
 
-  private removeFromCurrentView(): void {
-    if (this.viewSource === 'lan') {
-      this.onRemoveLan(this.peer.id);
-    } else if (this.viewSource === 'recent') {
-      this.onRemoveRecent(this.peer.id);
-    }
-  }
-
-  private hasExpandedActions(): boolean {
+  private hasMoreActions(): boolean {
     return this.peer.favorite || this.canRemoveFromCurrentView() || this.transferActive;
   }
 
-  private toggleActions(): void {
-    if (!this.hasExpandedActions()) {
-      return;
-    }
-    this.actionsExpanded = !this.actionsExpanded;
+  private openActions(): void {
+    this.onOpenActions(this.peer.id, this.viewSource);
   }
 
   @Builder
-  private ActionButton(label: string, symbol: Resource, danger: boolean, onClick: () => void) {
-    Column({ space: 5 }) {
-      Button({ type: ButtonType.Normal, stateEffect: true }) {
-        SymbolGlyph(symbol)
-          .fontSize(18)
-          .fontColor([danger ? $r('app.color.error') : $r('app.color.text_secondary')]);
-      }
-      .width(40)
-      .height(40)
-      .padding(0)
-      .borderRadius(12)
-      .backgroundColor($r('app.color.surface_secondary'))
-      .onClick(() => onClick());
-
-      Text(label)
-        .fontSize(10)
-        .fontColor($r('app.color.text_tertiary'));
+  private MoreActionsButton() {
+    Button({ type: ButtonType.Normal, stateEffect: true }) {
+      SymbolGlyph($r('sys.symbol.chevron_down'))
+        .fontSize(16)
+        .fontColor([$r('app.color.text_tertiary')]);
     }
-    .layoutWeight(1);
-  }
-
-  @Builder
-  private ExpandedActions() {
-    Row({ space: 8 }) {
-      this.ActionButton(
-        this.peer.favorite ? '取消收藏' : '收藏',
-        this.peer.favorite ? $r('sys.symbol.star_fill') : $r('sys.symbol.star'),
-        false,
-        (): void => this.toggleFavorite(),
-      );
-      if (this.canRemoveFromCurrentView()) {
-        this.ActionButton(
-          '移除',
-          $r('sys.symbol.trash'),
-          true,
-          (): void => this.removeFromCurrentView(),
-        );
-      }
-    }
-    .width('100%');
+    .width(34)
+    .height(34)
+    .padding(0)
+    .borderRadius(10)
+    .backgroundColor(Color.Transparent)
+    .accessibilityText('更多操作')
+    .onClick(() => this.openActions());
   }
 
   build() {
@@ -161,12 +121,8 @@ export struct PeerCard {
         .alignItems(HorizontalAlign.Start)
         .onClick(() => this.onConnectRemote(this.connectionTarget()));
 
-        if (this.hasExpandedActions()) {
-          SymbolGlyph($r('sys.symbol.chevron_down'))
-            .fontSize(14)
-            .fontColor([$r('app.color.text_tertiary')])
-            .rotate({ angle: this.actionsExpanded ? 180 : 0 })
-            .onClick(() => this.toggleActions());
+        if (this.hasMoreActions()) {
+          this.MoreActionsButton();
         } else {
           SymbolGlyph($r('sys.symbol.chevron_right'))
             .fontSize(14)
@@ -192,11 +148,6 @@ export struct PeerCard {
         );
       }
       .width('100%');
-
-      // ── 展开区：收藏/移除 ──
-      if (this.actionsExpanded) {
-        this.ExpandedActions();
-      }
     }
     .width('100%')
     .padding({ left: 14, right: 14, top: 12, bottom: 12 })
