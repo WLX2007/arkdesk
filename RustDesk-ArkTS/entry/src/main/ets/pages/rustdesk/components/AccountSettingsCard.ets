@@ -41,10 +41,6 @@ export struct AccountSettingsCard {
     return this.accountState.busy || this.accountState.syncing;
   }
 
-  private contentWidth(): number {
-    return Math.max(280, Math.min(this.viewportWidth - 40, 560));
-  }
-
   private hasChallenge(): boolean {
     return this.accountState.challengeId.trim().length > 0
       || this.accountState.challengeType.trim().length > 0;
@@ -721,7 +717,7 @@ export struct AccountSettingsCard {
 
       this.MessageBanner();
     }
-    .width(this.contentWidth())
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
     .onAreaChange((_oldArea: Area, newArea: Area) => {
       const width = Number(newArea.width);

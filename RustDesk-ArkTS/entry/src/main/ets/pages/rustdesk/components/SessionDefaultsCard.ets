@@ -20,43 +20,67 @@ export struct SessionDefaultsCard {
   @Local displayedGesturesEnabled: boolean = true;
   @Local displayedToolbarExpanded: boolean = false;
   @Local displayedSessionSharingEnabled: boolean = false;
+  // 分段选择需要本地镜像：@Param 对象被父组件整体替换时不保证重渲染，
+  // 只依赖 this.defaults 会导致点击后高亮不跟随。
+  @Local displayedPointerMode: number = 1;
+  @Local displayedRightClickGesture: number = 0;
+  @Local displayedQualityPreset: string = 'balanced';
+  @Local displayedCodec: string = 'auto';
   @Event onDefaultsChange: (defaults: SessionDefaults) => void = (_defaults: SessionDefaults) => {};
 
   aboutToAppear(): void {
-    this.syncDisplayedToggleStates();
+    this.syncDisplayedStates();
   }
 
   @Monitor('defaults')
   private onDefaultsChanged(_monitor: IMonitor): void {
-    this.syncDisplayedToggleStates();
+    // 只同步「外部改动」：父组件回流的值与我们本地镜像不一致时才覆盖。
+    // 用户在本地刚改过的项，此刻 @Param 可能还是旧快照，直接同步会把选择回退。
+    if (this.defaults.qualityPreset === this.displayedQualityPreset
+      && this.defaults.preferredCodec === this.displayedCodec
+      && this.defaults.audioEnabled === this.displayedAudioEnabled
+      && this.defaults.clipboardEnabled === this.displayedClipboardEnabled
+      && this.defaults.gesturesEnabled === this.displayedGesturesEnabled
+      && this.defaults.toolbarExpanded === this.displayedToolbarExpanded
+      && this.defaults.sessionSharingEnabled === this.displayedSessionSharingEnabled
+      && this.computePointerModeIndex() === this.displayedPointerMode
+      && this.computeRightClickGestureIndex() === this.displayedRightClickGesture) {
+      return;
+    }
+    this.syncDisplayedStates();
   }
 
-  private syncDisplayedToggleStates(): void {
+  private syncDisplayedStates(): void {
     this.displayedAudioEnabled = this.defaults.audioEnabled;
     this.displayedClipboardEnabled = this.defaults.clipboardEnabled;
     this.displayedGesturesEnabled = this.defaults.gesturesEnabled;
     this.displayedToolbarExpanded = this.defaults.toolbarExpanded;
     this.displayedSessionSharingEnabled = this.defaults.sessionSharingEnabled;
+    this.displayedPointerMode = this.computePointerModeIndex();
+    this.displayedRightClickGesture = this.computeRightClickGestureIndex();
+    this.displayedQualityPreset = this.defaults.qualityPreset;
+    this.displayedCodec = this.defaults.preferredCodec;
   }
 
-  private contentWidth(): number {
-    return Math.max(280, Math.min(this.viewportWidth - 40, 560));
-  }
-
-  private copyDefaults(): SessionDefaults {
+  // 用本地镜像状态构造待提交对象。
+  // @Param defaults 是父组件传入的快照，emit 之后父组件重渲染前仍是旧值，
+  // 若从它复制会把本次修改丢掉（表现为「勾选不生效」）。
+  private buildDraft(): SessionDefaults {
     const next = new SessionDefaults();
-    next.touchMode = this.defaults.touchMode;
-    next.relativeMouseMode = this.defaults.relativeMouseMode;
-    next.rightClickGesture = this.defaults.rightClickGesture;
-    next.audioEnabled = this.defaults.audioEnabled;
-    next.clipboardEnabled = this.defaults.clipboardEnabled;
-    next.qualityPreset = this.defaults.qualityPreset;
+    next.touchMode = this.displayedPointerMode === 0;
+    next.relativeMouseMode = this.displayedPointerMode === 2;
+    next.rightClickGesture = this.displayedRightClickGesture === 0
+      ? 'double_tap'
+      : (this.displayedRightClickGesture === 1 ? 'two_finger_tap' : 'long_press');
+    next.audioEnabled = this.displayedAudioEnabled;
+    next.clipboardEnabled = this.displayedClipboardEnabled;
+    next.qualityPreset = this.displayedQualityPreset;
     next.customQuality = this.defaults.customQuality;
     next.customFps = this.defaults.customFps;
-    next.preferredCodec = this.defaults.preferredCodec;
-    next.gesturesEnabled = this.defaults.gesturesEnabled;
-    next.toolbarExpanded = this.defaults.toolbarExpanded;
-    next.sessionSharingEnabled = this.defaults.sessionSharingEnabled;
+    next.preferredCodec = this.displayedCodec;
+    next.gesturesEnabled = this.displayedGesturesEnabled;
+    next.toolbarExpanded = this.displayedToolbarExpanded;
+    next.sessionSharingEnabled = this.displayedSessionSharingEnabled;
     return next;
   }
 
@@ -65,21 +89,27 @@ export struct SessionDefaultsCard {
   }
 
   private updatePointerMode(index: number): void {
-    const next = this.copyDefaults();
+    this.displayedPointerMode = index;
+    const next = this.buildDraft();
     next.touchMode = index === 0;
     next.relativeMouseMode = index === 2;
     this.emit(next);
   }
 
-  private pointerModeIndex(): number {
+  private computePointerModeIndex(): number {
     if (this.defaults.touchMode) {
       return 0;
     }
     return this.defaults.relativeMouseMode ? 2 : 1;
   }
 
+  private pointerModeIndex(): number {
+    return this.displayedPointerMode;
+  }
+
   private updateRightClickGesture(index: number): void {
-    const next = this.copyDefaults();
+    this.displayedRightClickGesture = index;
+    const next = this.buildDraft();
     const gesture: RustDeskRightClickGesture = index === 0
       ? 'double_tap'
       : (index === 1 ? 'two_finger_tap' : 'long_press');
@@ -87,69 +117,77 @@ export struct SessionDefaultsCard {
     this.emit(next);
   }
 
-  private rightClickGestureIndex(): number {
+  private computeRightClickGestureIndex(): number {
     if (this.defaults.rightClickGesture === 'double_tap') {
       return 0;
     }
     return this.defaults.rightClickGesture === 'two_finger_tap' ? 1 : 2;
   }
 
+  private rightClickGestureIndex(): number {
+    return this.displayedRightClickGesture;
+  }
+
   private updateAudio(enabled: boolean): void {
     this.displayedAudioEnabled = enabled;
-    const next = this.copyDefaults();
+    const next = this.buildDraft();
     next.audioEnabled = enabled;
     this.emit(next);
   }
 
   private updateClipboard(enabled: boolean): void {
     this.displayedClipboardEnabled = enabled;
-    const next = this.copyDefaults();
+    const next = this.buildDraft();
     next.clipboardEnabled = enabled;
     this.emit(next);
   }
 
   private updateGestures(enabled: boolean): void {
     this.displayedGesturesEnabled = enabled;
-    const next = this.copyDefaults();
+    const next = this.buildDraft();
     next.gesturesEnabled = enabled;
     this.emit(next);
   }
 
   private updateToolbar(enabled: boolean): void {
     this.displayedToolbarExpanded = enabled;
-    const next = this.copyDefaults();
+    const next = this.buildDraft();
     next.toolbarExpanded = enabled;
     this.emit(next);
   }
 
   private updateSessionSharing(enabled: boolean): void {
     this.displayedSessionSharingEnabled = enabled;
-    const next = this.copyDefaults();
+    const next = this.buildDraft();
     next.sessionSharingEnabled = enabled;
     this.emit(next);
   }
 
   private updateQuality(preset: string): void {
-    const next = this.copyDefaults();
+    this.displayedQualityPreset = preset;
+    const next = this.buildDraft();
     next.qualityPreset = preset;
     this.emit(next);
   }
 
   private updateCodec(codec: string): void {
-    const next = this.copyDefaults();
+    this.displayedCodec = codec;
+    const next = this.buildDraft();
     next.preferredCodec = codec;
     this.emit(next);
   }
 
   private updateCustomQuality(value: number): void {
-    const next = this.copyDefaults();
+    this.displayedQualityPreset = 'custom';
+    const next = this.buildDraft();
     next.qualityPreset = 'custom';
     next.customQuality = this.clampCustomQuality(value);
     this.emit(next);
   }
 
   private updateCustomFps(value: number): void {
-    const next = this.copyDefaults();
+    this.displayedQualityPreset = 'custom';
+    const next = this.buildDraft();
     next.qualityPreset = 'custom';
     next.customFps = this.clampCustomFps(value);
     this.emit(next);
@@ -170,13 +208,13 @@ export struct SessionDefaultsCard {
   }
 
   private qualityIndex(): number {
-    if (this.defaults.qualityPreset === 'low') {
+    if (this.displayedQualityPreset === 'low') {
       return 0;
     }
-    if (this.defaults.qualityPreset === 'best') {
+    if (this.displayedQualityPreset === 'best') {
       return 2;
     }
-    if (this.defaults.qualityPreset === 'custom') {
+    if (this.displayedQualityPreset === 'custom') {
       return 3;
     }
     return 1;
@@ -195,19 +233,19 @@ export struct SessionDefaultsCard {
   }
 
   private codecIndex(): number {
-    if (this.defaults.preferredCodec === 'h265') {
+    if (this.displayedCodec === 'h265') {
       return 1;
     }
-    if (this.defaults.preferredCodec === 'h264') {
+    if (this.displayedCodec === 'h264') {
       return 2;
     }
-    if (this.defaults.preferredCodec === 'av1') {
+    if (this.displayedCodec === 'av1') {
       return 3;
     }
-    if (this.defaults.preferredCodec === 'vp9') {
+    if (this.displayedCodec === 'vp9') {
       return 4;
     }
-    if (this.defaults.preferredCodec === 'vp8') {
+    if (this.displayedCodec === 'vp8') {
       return 5;
     }
     return 0;
@@ -262,28 +300,101 @@ export struct SessionDefaultsCard {
 
   // ── 分段选择（原生）─────────────────────────
 
+  // 注意：@Builder 的入参是按值捕获的，把 selected 当参数传入不会建立响应式依赖，
+  // 切换后高亮不会刷新。因此这里直接读取 @Local 状态来判断选中。
   @Builder
-  private SegmentOption(label: ResourceStr, selected: boolean, onSelect: () => void) {
+  private PointerSegmentOption(label: string, index: number) {
     Text(label)
       .layoutWeight(1)
       .height(40)
       .fontSize(14)
-      .fontWeight(selected ? FontWeight.Medium : FontWeight.Normal)
-      .fontColor(selected ? $r('app.color.text_inverse') : $r('app.color.text_secondary'))
+      .fontWeight(this.displayedPointerMode === index ? FontWeight.Medium : FontWeight.Normal)
+      .fontColor(this.displayedPointerMode === index
+        ? $r('app.color.text_inverse')
+        : $r('app.color.text_secondary'))
       .textAlign(TextAlign.Center)
       .borderRadius(11)
-      .backgroundColor(selected ? $r('app.color.brand_primary') : Color.Transparent)
+      .backgroundColor(this.displayedPointerMode === index
+        ? $r('app.color.brand_primary')
+        : Color.Transparent)
       .maxLines(1)
       .textOverflow({ overflow: TextOverflow.Ellipsis })
-      .onClick(onSelect);
+      .onClick(() => this.updatePointerMode(index));
   }
 
   @Builder
-  private SegmentRow(items: string[], selectedIndex: number, onSelect: (index: number) => void) {
+  private PointerSegmentRow() {
     Row({ space: 4 }) {
-      ForEach(items, (item: string, index: number) => {
-        this.SegmentOption(item, selectedIndex === index, () => onSelect(index));
-      }, (item: string) => item);
+      this.PointerSegmentOption('触控模式', 0)
+      this.PointerSegmentOption('鼠标模式', 1)
+      this.PointerSegmentOption('相对鼠标', 2)
+    }
+    .width('100%')
+    .padding(3)
+    .borderRadius(14)
+    .backgroundColor($r('app.color.surface_secondary'));
+  }
+
+  @Builder
+  private GestureSegmentOption(label: string, index: number) {
+    Text(label)
+      .layoutWeight(1)
+      .height(40)
+      .fontSize(14)
+      .fontWeight(this.displayedRightClickGesture === index ? FontWeight.Medium : FontWeight.Normal)
+      .fontColor(this.displayedRightClickGesture === index
+        ? $r('app.color.text_inverse')
+        : $r('app.color.text_secondary'))
+      .textAlign(TextAlign.Center)
+      .borderRadius(11)
+      .backgroundColor(this.displayedRightClickGesture === index
+        ? $r('app.color.brand_primary')
+        : Color.Transparent)
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .onClick(() => this.updateRightClickGesture(index));
+  }
+
+  @Builder
+  private GestureSegmentRow() {
+    Row({ space: 4 }) {
+      this.GestureSegmentOption('双击', 0)
+      this.GestureSegmentOption('双指点击', 1)
+      this.GestureSegmentOption('长按', 2)
+    }
+    .width('100%')
+    .padding(3)
+    .borderRadius(14)
+    .backgroundColor($r('app.color.surface_secondary'));
+  }
+
+  @Builder
+  private QualitySegmentOption(label: string, index: number) {
+    Text(label)
+      .layoutWeight(1)
+      .height(40)
+      .fontSize(14)
+      .fontWeight(this.qualityIndex() === index ? FontWeight.Medium : FontWeight.Normal)
+      .fontColor(this.qualityIndex() === index
+        ? $r('app.color.text_inverse')
+        : $r('app.color.text_secondary'))
+      .textAlign(TextAlign.Center)
+      .borderRadius(11)
+      .backgroundColor(this.qualityIndex() === index
+        ? $r('app.color.brand_primary')
+        : Color.Transparent)
+      .maxLines(1)
+      .textOverflow({ overflow: TextOverflow.Ellipsis })
+      .onClick(() => this.updateQualityIndex(index));
+  }
+
+  @Builder
+  private QualitySegmentRow() {
+    Row({ space: 4 }) {
+      this.QualitySegmentOption('流畅', 0)
+      this.QualitySegmentOption('均衡', 1)
+      this.QualitySegmentOption('最佳', 2)
+      this.QualitySegmentOption('自定义', 3)
     }
     .width('100%')
     .padding(3)
@@ -379,11 +490,7 @@ export struct SessionDefaultsCard {
     Column({ space: 16 }) {
       Column({ space: 12 }) {
         this.FieldLabel($r('app.string.settings_pointer_mode'));
-        this.SegmentRow(
-          ['触控模式', '鼠标模式', '相对鼠标'],
-          this.pointerModeIndex(),
-          (index: number) => this.updatePointerMode(index),
-        );
+        this.PointerSegmentRow();
       }
       .width('100%')
       .padding(16)
@@ -399,11 +506,7 @@ export struct SessionDefaultsCard {
 
       Column({ space: 12 }) {
         this.FieldLabel('右键手势');
-        this.SegmentRow(
-          ['双击', '双指点击', '长按'],
-          this.rightClickGestureIndex(),
-          (index: number) => this.updateRightClickGesture(index),
-        );
+        this.GestureSegmentRow();
       }
       .width('100%')
       .padding(16)
@@ -516,11 +619,7 @@ export struct SessionDefaultsCard {
     Column({ space: 16 }) {
       Column({ space: 12 }) {
         this.FieldLabel($r('app.string.settings_quality_default'));
-        this.SegmentRow(
-          ['流畅', '均衡', '最佳', '自定义'],
-          this.qualityIndex(),
-          (index: number) => this.updateQualityIndex(index),
-        );
+        this.QualitySegmentRow();
       }
       .width('100%')
       .padding(16)
@@ -662,7 +761,7 @@ export struct SessionDefaultsCard {
         this.OtherSection();
       }
     }
-    .width(this.contentWidth())
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
     .onAreaChange((_oldArea: Area, newArea: Area) => {
       const width = Number(newArea.width);

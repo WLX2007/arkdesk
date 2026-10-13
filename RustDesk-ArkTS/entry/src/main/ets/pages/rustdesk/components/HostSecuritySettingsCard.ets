@@ -63,10 +63,6 @@ export struct HostSecuritySettingsCard {
     this.setupSecretVisible = false;
   }
 
-  private contentWidth(): number {
-    return Math.max(280, Math.min(this.viewportWidth - 40, 560));
-  }
-
   private passwordModeIndex(): number {
     if (this.hostState.verificationMethod === PASSWORD_MODE_TEMPORARY) {
       return 0;
@@ -766,7 +762,7 @@ export struct HostSecuritySettingsCard {
         .borderRadius(14)
         .onClick(() => this.onRefresh());
     }
-    .width(this.contentWidth())
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
     .onAreaChange((_oldArea: Area, newArea: Area): void => {
       const width: number = Number(newArea.width);

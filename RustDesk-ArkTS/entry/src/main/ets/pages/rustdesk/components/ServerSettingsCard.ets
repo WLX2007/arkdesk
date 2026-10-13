@@ -27,10 +27,6 @@ export struct ServerSettingsCard {
     return this.validating || this.saving;
   }
 
-  private contentWidth(): number {
-    return Math.max(280, Math.min(this.viewportWidth - 40, 560));
-  }
-
   private copyConfig(): ServerConfig {
     const next = new ServerConfig();
     next.mode = this.config.mode;
@@ -700,7 +696,7 @@ export struct ServerSettingsCard {
 
       this.ActionArea();
     }
-    .width(this.contentWidth())
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
     .onAreaChange((_oldArea: Area, newArea: Area) => {
       const width = Number(newArea.width);

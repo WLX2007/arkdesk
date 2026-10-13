@@ -80,12 +80,12 @@ export struct SettingsTab {
   @Param bottomAvoidInset: number = 0;
   @Param tutorialLaunchToken: number = 0;
   @Local viewportWidth: number = 390;
-  @Local sheetViewportWidth: number = 390;
   @Local sheetViewportHeight: number = 0;
   @Local selectedSection: SettingsSection = 'server';
   @Local settingsSheetVisible: boolean = false;
   @Local appVersionName: string = '--';
   @Local sessionDefaultsDraft: SessionDefaults = new SessionDefaults();
+  private draftInitialized: boolean = false;
   @Param scroller: Scroller = new Scroller();
   private sheetScroller: Scroller = new Scroller();
   private handledTutorialLaunchToken: number = 0;
@@ -182,10 +182,6 @@ export struct SettingsTab {
     return Math.max(280, Math.min(this.viewportWidth - 40, 560));
   }
 
-  private sheetContentWidth(): number {
-    return Math.max(280, Math.min(this.sheetViewportWidth - 40, 560));
-  }
-
   private decoderDisplayName(item: DecoderCapability): string {
     if (item.recommendedName.trim().length > 0) {
       return item.recommendedName.trim();
@@ -222,6 +218,7 @@ export struct SettingsTab {
   private updateSessionDefaultsDraft(defaults: SessionDefaults): void {
     const next = this.copySessionDefaults(defaults);
     this.sessionDefaultsDraft = next;
+    this.draftInitialized = true;
     this.onSessionDefaultsChange(this.copySessionDefaults(next));
   }
 
@@ -230,7 +227,12 @@ export struct SettingsTab {
       || section === 'session_quality'
       || section === 'session_security'
       || section === 'session_other') {
-      this.sessionDefaultsDraft = this.copySessionDefaults(this.sessionDefaults);
+      // 仅在首次进入时从 @Param 播种。@Param 是父组件快照，用户刚改完还未回流时
+      // 仍是旧值，每次都重新播种会把刚才的选择覆盖掉。
+      if (!this.draftInitialized) {
+        this.sessionDefaultsDraft = this.copySessionDefaults(this.sessionDefaults);
+        this.draftInitialized = true;
+      }
     }
     this.selectedSection = section;
     this.settingsSheetVisible = true;
@@ -974,21 +976,15 @@ export struct SettingsTab {
               this.SelectedSettingsContent()
             }
             .width('100%')
-            .alignItems(HorizontalAlign.Start)
-            .onAreaChange((_oldArea: Area, newArea: Area) => {
-              const width = Number(newArea.width);
-              if (width > 0) {
-                this.sheetViewportWidth = width;
-              }
-            });
+            .alignItems(HorizontalAlign.Start);
           }
           .width('100%')
           .constraintSize({ minHeight: this.sheetViewportHeight })
-          .justifyContent(FlexAlign.Center)
+          .justifyContent(FlexAlign.Start)
           .alignItems(VerticalAlign.Top)
           .padding({
-            left: $r('app.float.space_20'),
-            right: $r('app.float.space_20'),
+            left: $r('app.float.space_16'),
+            right: $r('app.float.space_16'),
             top: $r('app.float.space_16'),
             bottom: $r('app.float.space_24'),
           });
