@@ -1,9 +1,5 @@
-import {
-  LuminousNeoTokens,
-  LuminousSegmentedControl,
-  LuminousSelectionItem,
-} from '../../../luminous_neo/Index';
 import { ControlledHostState } from '../../../services/controlled/ControlledHostTypes';
+import { RustDeskLayoutTokens } from '../RustDeskLayoutTokens';
 import { ViewedHostCard } from './ViewedHostCard';
 
 export interface ViewedHostPageProps {
@@ -26,87 +22,63 @@ export struct ViewedHostPage {
   @Param titleSpacerHeight: number = 56;
   @Param bottomAvoidInset: number = 0;
   @Param wideLayout: boolean = false;
-  @Local viewportWidth: number = 760;
+  @Local viewportWidth: number = 390;
   @Event onStart: () => void = () => {};
   @Event onStop: () => void = () => {};
   @Event onAccept: (requestId: string, peerId: string) => void = (_requestId: string, _peerId: string) => {};
   @Event onReject: (requestId: string, peerId: string) => void = (_requestId: string, _peerId: string) => {};
   @Event onRefreshPassword: () => void = () => {};
 
-  private horizontalPadding(): number {
-    if (this.viewportWidth >= 1100) {
-      return 48;
-    }
-    if (this.viewportWidth >= 720) {
-      return 32;
-    }
-    return 20;
-  }
-
   private contentWidth(): number {
-    return Math.max(280, Math.min(this.viewportWidth - this.horizontalPadding() * 2, 760));
+    return Math.max(280, Math.min(this.viewportWidth - 40, 560));
   }
 
-  private modeControlWidth(): number {
-    return Math.max(220, this.contentWidth() - LuminousNeoTokens.shadowPaddingFor(44) * 2);
-  }
-
-  private modeItems(): LuminousSelectionItem[] {
-    return [new LuminousSelectionItem('viewed', '被观看', '仅共享本机屏幕和系统音频')];
-  }
-
-  private contentTitleSpacerHeight(): number {
-    return this.wideLayout ? this.titleSpacerHeight : Math.min(this.titleSpacerHeight, 24);
+  private isWideAnchor(): boolean {
+    return RustDeskLayoutTokens.useWideContentAnchor(this.viewportWidth, this.wideLayout);
   }
 
   build(): void {
-    Scroll(this.scroller) {
-      Column({ space: 8 }) {
-        Blank()
+    Column() {
+      Blank()
+        .width('100%')
+        .height(this.titleSpacerHeight)
+        .flexShrink(0);
+
+      List({ scroller: this.scroller }) {
+        ListItem() {
+          Column({ space: 16 }) {
+            ViewedHostCard({
+              state: this.state,
+              surfaceWidth: this.contentWidth(),
+              onStart: () => this.onStart(),
+              onStop: () => this.onStop(),
+              onAccept: (requestId: string, peerId: string) => this.onAccept(requestId, peerId),
+              onReject: (requestId: string, peerId: string) => this.onReject(requestId, peerId),
+              onRefreshPassword: () => this.onRefreshPassword(),
+            });
+          }
           .width('100%')
-          .height(this.contentTitleSpacerHeight())
-          .flexShrink(0);
-        Row() {
-          LuminousSegmentedControl({
-            items: this.modeItems(),
-            selectedIndex: 0,
-            controlWidth: this.modeControlWidth(),
-            controlHeight: 44,
-            motionEnabled: true,
-            onChange: (_index: number): void => {},
+          .padding({
+            top: RustDeskLayoutTokens.PAGE_CONTENT_TOP_PADDING,
+            bottom: (this.wideLayout ? 52 : 132) + this.bottomAvoidInset,
           })
+          .alignItems(this.isWideAnchor() ? HorizontalAlign.Start : HorizontalAlign.Center);
         }
-        .width(this.contentWidth())
-        .justifyContent(FlexAlign.Center)
-        .clip(false);
-        ViewedHostCard({
-          state: this.state,
-          surfaceWidth: this.contentWidth(),
-          onStart: () => this.onStart(),
-          onStop: () => this.onStop(),
-          onAccept: (requestId: string, peerId: string) => this.onAccept(requestId, peerId),
-          onReject: (requestId: string, peerId: string) => this.onReject(requestId, peerId),
-          onRefreshPassword: () => this.onRefreshPassword(),
-        });
-        Blank()
-          .width('100%')
-          .height((this.wideLayout ? 48 : 120) + this.bottomAvoidInset)
-          .flexShrink(0);
       }
+      .layoutWeight(1)
       .width('100%')
-      .constraintSize({ minHeight: '100%' })
-      .alignItems(HorizontalAlign.Center)
-      .onAreaChange((_oldArea: Area, newArea: Area): void => {
-        const width: number = Number(newArea.width);
-        if (width > 0) {
-          this.viewportWidth = width;
-        }
-      });
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true });
     }
     .width('100%')
     .height('100%')
-    .backgroundColor($r('app.color.neu_base'))
-    .scrollBar(BarState.Off)
-    .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true });
+    .alignItems(HorizontalAlign.Center)
+    .backgroundColor($r('app.color.background'))
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      const width = Number(newArea.width);
+      if (width > 0) {
+        this.viewportWidth = width;
+      }
+    });
   }
 }

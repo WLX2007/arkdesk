@@ -8295,7 +8295,7 @@ struct RustDeskIndex {
       return '首页';
     }
     if (this.currentTabIndex === 1) {
-      return '服务端';
+      return '授控';
     }
     if (this.currentTabIndex === 2) {
       return '设备';
@@ -8575,7 +8575,7 @@ struct RustDeskIndex {
           .margin({ bottom: 8 });
 
           this.WideNavigationItem(0, '首页', $r('sys.symbol.house'))
-          this.WideNavigationItem(1, '服务端', $r('sys.symbol.display'))
+          this.WideNavigationItem(1, '授控', $r('sys.symbol.display'))
           this.WideNavigationItem(2, '设备', $r('sys.symbol.person_crop_circle_fill'))
           this.WideNavigationItem(3, '设置', $r('sys.symbol.gearshape'))
           Blank()
@@ -8817,7 +8817,7 @@ struct RustDeskIndex {
       TabContent() {
         this.ViewedHostPageContent();
       }
-      .tabBar(this.TabBuilder(1, '服务端', $r('sys.symbol.display')))
+      .tabBar(this.TabBuilder(1, '授控', $r('sys.symbol.display')))
 
       TabContent() {
         this.DevicesPageContent();

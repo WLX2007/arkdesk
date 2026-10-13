@@ -48,3 +48,8 @@ RustDesk-ArkTS/design/app-icon/_backup/
 **/local.properties
 .idea/
 .vscode/
+
+# Local tooling artifacts
+.cache/
+.dsh-hdc/
+.dsh-acl-recovery/
