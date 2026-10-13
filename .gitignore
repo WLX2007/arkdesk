@@ -36,6 +36,14 @@ har_stage/
 .DS_Store
 Thumbs.db
 
+# hvigor/DevEco 生成的临时资源
+RustDesk-ArkTS/.dsh-hvigor-tmp/
+RustDesk-ArkTS/design/app-icon/_backup/
+**/layered_image.json
+**/resk_background.png
+**/resk_foreground.png
+**/_crop_card.png
+
 # DevEco 本地配置
 **/local.properties
 .idea/
