@@ -1,0 +1,69 @@
+{
+  "app": {
+    "products": [
+      {
+        "name": "default",
+        "targetSdkVersion": "6.1.0(23)",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "runtimeOS": "HarmonyOS",
+        "signingConfig": "default",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      },
+      {
+        "name": "publish",
+        "targetSdkVersion": "6.1.0(23)",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\WLX\\.ohos\\config\\default_RustDesk-ArkTS_gxlQs9vEjmwW5B4MjfeIG6iYO_WGwO4FusRo1KsjrEA=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BA8584C5B85A8308B484234C4203681003E1D3656FEDEBB09358D6383A42714C899D0D75DDEA7F3",
+          "profile": "C:\\Users\\WLX\\.ohos\\config\\default_RustDesk-ArkTS_gxlQs9vEjmwW5B4MjfeIG6iYO_WGwO4FusRo1KsjrEA=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\WLX\\.ohos\\config\\default_RustDesk-ArkTS_gxlQs9vEjmwW5B4MjfeIG6iYO_WGwO4FusRo1KsjrEA=.p12",
+          "storePassword": "0000001B111744B1CEFB6FED45459E15D70FC1A2322F6DE1560A507DA4E79A38FB98D3623D85CC98F3A683"
+        }
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default",
+            "publish"
+          ]
+        }
+      ]
+    }
+  ]
+}

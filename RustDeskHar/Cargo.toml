@@ -1,0 +1,33 @@
+[package]
+name    = "rustdesk_native_har"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi-ohos = { version = "1.0", default-features = false, features = [
+    "napi8",
+    "async",
+] }
+napi-derive-ohos = { version = "1.0" }
+rustdesk = { path = "../R_RustDesk-Core", features = ["ohos-har", "cliprdr-file-service"] }
+hbb_common = { path = "../R_RustDesk-Core/libs/hbb_common" }
+serde_json = "1.0"
+log = "0.4"
+
+[build-dependencies]
+napi-build-ohos = { version = "1.0" }
+
+# The crates.io build script does not recognize the OpenHarmony target triple.
+# Keep the RustDesk dependency graph unchanged and patch only the native
+# libsodium build used by this OHOS HAR.
+[patch.crates-io]
+libsodium-sys = { git = "https://github.com/FrankHan052176/sodiumoxide", rev = "a09de89d843f88a7bfccd80266150fe5d33e1eee" }
+
+[profile.release]
+lto = true

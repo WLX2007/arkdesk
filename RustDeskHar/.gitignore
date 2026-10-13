@@ -1,0 +1,13 @@
+dist/
+target/
+target-ohrs*/
+.DS_Store
+.idea/
+.vscode/
+.ohpmrc
+package/libs
+
+third_party/rustdesk/target/
+third_party/rustdesk/.idea/
+
+*.har

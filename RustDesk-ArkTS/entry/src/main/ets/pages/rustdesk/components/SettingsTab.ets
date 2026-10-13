@@ -1,0 +1,1210 @@
+import { bundleManager, common, OpenLinkOptions } from '@kit.AbilityKit';
+import {
+  HdsNavigation,
+  HdsNavigationTitleMode,
+  IconStyleMode,
+  ScrollEffectType,
+  hdsMaterial,
+} from '@kit.UIDesignKit';
+import {
+  LuminousButton,
+  LuminousControlSize,
+  LuminousSurface,
+  LuminousTone,
+} from '../../../luminous_neo/Index';
+import { AccountLoginProvider, AccountState, ServerConfig, SessionDefaults } from '../RustDeskDirectoryTypes';
+import { DecoderCapability } from '../RustDeskTypes';
+import { RustDeskLayoutTokens } from '../RustDeskLayoutTokens';
+import { AccountSettingsCard } from './AccountSettingsCard';
+import { BeginnerGuidePage } from './BeginnerGuidePage';
+import { ServerSettingsCard } from './ServerSettingsCard';
+import { SessionDefaultsCard } from './SessionDefaultsCard';
+import { HostSecuritySettingsCard } from './HostSecuritySettingsCard';
+import {
+  ControlledHostState,
+  ControlledPasswordMode,
+  ControlledTrustedDevice,
+  ControlledTwoFactorState,
+} from '../../../services/controlled/ControlledHostTypes';
+
+const RUSTDESK_WEBSITE_URL: string = 'https://rustdesk.com';
+const RUSTDESK_PRIVACY_URL: string = 'https://rustdesk.com/privacy.html';
+
+type SettingsSection = 'tutorial' | 'server' | 'account'
+  | 'session_input' | 'session_quality' | 'session_security' | 'session_other'
+  | 'diagnostics';
+
+export interface SettingsTabProps {
+  decoderCapabilities: DecoderCapability[];
+  serverConfig: ServerConfig;
+  serverValidating: boolean;
+  serverSaving: boolean;
+  sessionDefaults: SessionDefaults;
+  accountState: AccountState;
+  accountLoginProviders: AccountLoginProvider[];
+  controlledHostState: ControlledHostState;
+  controlledTwoFactorState: ControlledTwoFactorState;
+  errorText: string;
+  scroller: Scroller;
+  wideLayout: boolean;
+  titleSpacerHeight: number;
+  bottomAvoidInset: number;
+  tutorialLaunchToken: number;
+  onServerConfigChange: (config: ServerConfig) => void;
+  onValidateServerConfig: (config: ServerConfig) => void;
+  onSaveServerConfig: (config: ServerConfig) => void;
+  onSessionDefaultsChange: (defaults: SessionDefaults) => void;
+  onAccountLogin: (username: string, password: string) => void;
+  onAccountVerify: (code: string) => void;
+  onAccountCancelChallenge: () => void;
+  onAccountOidcLogin: (provider: string) => void;
+  onAccountOidcCancel: () => void;
+  onAddressBookSync: () => void;
+  onAccountLogout: () => void;
+  onControlledRefresh: () => void;
+  onControlledPasswordModeChange: (mode: ControlledPasswordMode) => void;
+  onControlledSetPermanentPassword: (password: string, confirmation: string) => void;
+  onControlledRemovePermanentPassword: () => void;
+  onControlledBeginTwoFactor: () => void;
+  onControlledVerifyTwoFactor: (code: string) => void;
+  onControlledCancelTwoFactor: () => void;
+  onControlledDisableTwoFactor: () => void;
+  onControlledTrustedDevicesEnabledChange: (enabled: boolean) => void;
+  onControlledRemoveTrustedDevice: (device: ControlledTrustedDevice) => void;
+  onControlledClearTrustedDevices: () => void;
+  onRefresh: () => void;
+  onTutorialAutoOpened: () => void;
+}
+
+@ComponentV2
+export struct SettingsTab {
+  @Param decoderCapabilities: DecoderCapability[] = [];
+  @Param serverConfig: ServerConfig = new ServerConfig();
+  @Param serverValidating: boolean = false;
+  @Param serverSaving: boolean = false;
+  @Param sessionDefaults: SessionDefaults = new SessionDefaults();
+  @Param accountState: AccountState = new AccountState();
+  @Param accountLoginProviders: AccountLoginProvider[] = [];
+  @Param controlledHostState: ControlledHostState = new ControlledHostState();
+  @Param controlledTwoFactorState: ControlledTwoFactorState = new ControlledTwoFactorState();
+  @Param errorText: string = '';
+  @Param wideLayout: boolean = false;
+  @Param titleSpacerHeight: number = 56;
+  @Param bottomAvoidInset: number = 0;
+  @Param tutorialLaunchToken: number = 0;
+  @Local viewportWidth: number = 390;
+  @Local sheetViewportWidth: number = 390;
+  @Local hubViewportHeight: number = 0;
+  @Local sheetViewportHeight: number = 0;
+  @Local selectedSection: SettingsSection = 'server';
+  @Local settingsSheetVisible: boolean = false;
+  @Local pressedSection: string = '';
+  @Local appVersionName: string = '--';
+  @Local sessionDefaultsDraft: SessionDefaults = new SessionDefaults();
+  @Param scroller: Scroller = new Scroller();
+  private sheetScroller: Scroller = new Scroller();
+  private handledTutorialLaunchToken: number = 0;
+  @Event onServerConfigChange: (config: ServerConfig) => void = (_config: ServerConfig) => {};
+  @Event onValidateServerConfig: (config: ServerConfig) => void = (_config: ServerConfig) => {};
+  @Event onSaveServerConfig: (config: ServerConfig) => void = (_config: ServerConfig) => {};
+  @Event onSessionDefaultsChange: (defaults: SessionDefaults) => void = (_defaults: SessionDefaults) => {};
+  @Event onAccountLogin: (username: string, password: string) => void = (_username: string, _password: string) => {};
+  @Event onAccountVerify: (code: string) => void = (_code: string) => {};
+  @Event onAccountCancelChallenge: () => void = () => {};
+  @Event onAccountOidcLogin: (provider: string) => void = (_provider: string) => {};
+  @Event onAccountOidcCancel: () => void = () => {};
+  @Event onAddressBookSync: () => void = () => {};
+  @Event onAccountLogout: () => void = () => {};
+  @Event onControlledRefresh: () => void = () => {};
+  @Event onControlledPasswordModeChange: (mode: ControlledPasswordMode) => void =
+    (_mode: ControlledPasswordMode) => {};
+  @Event onControlledSetPermanentPassword: (password: string, confirmation: string) => void =
+    (_password: string, _confirmation: string) => {};
+  @Event onControlledRemovePermanentPassword: () => void = () => {};
+  @Event onControlledBeginTwoFactor: () => void = () => {};
+  @Event onControlledVerifyTwoFactor: (code: string) => void = (_code: string) => {};
+  @Event onControlledCancelTwoFactor: () => void = () => {};
+  @Event onControlledDisableTwoFactor: () => void = () => {};
+  @Event onControlledTrustedDevicesEnabledChange: (enabled: boolean) => void = (_enabled: boolean) => {};
+  @Event onControlledRemoveTrustedDevice: (device: ControlledTrustedDevice) => void =
+    (_device: ControlledTrustedDevice) => {};
+  @Event onControlledClearTrustedDevices: () => void = () => {};
+  @Event onRefresh: () => void = () => {};
+  @Event onTutorialAutoOpened: () => void = () => {};
+
+  aboutToAppear(): void {
+    void this.loadAppVersion();
+    setTimeout((): void => this.openRequestedTutorialIfNeeded(), 0);
+  }
+
+  private async loadAppVersion(): Promise<void> {
+    try {
+      const bundleInfo = await bundleManager.getBundleInfoForSelf(
+        bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT,
+      );
+      this.appVersionName = bundleInfo.versionName.trim().length > 0 ? bundleInfo.versionName : '--';
+    } catch (_) {
+      this.appVersionName = '--';
+    }
+  }
+
+  @Monitor('tutorialLaunchToken')
+  private onTutorialLaunchTokenChanged(_monitor: IMonitor): void {
+    this.openRequestedTutorialIfNeeded();
+  }
+
+  private openRequestedTutorialIfNeeded(): void {
+    if (this.tutorialLaunchToken <= 0 || this.tutorialLaunchToken <= this.handledTutorialLaunchToken) {
+      return;
+    }
+    this.handledTutorialLaunchToken = this.tutorialLaunchToken;
+    this.selectSection('tutorial');
+    this.onTutorialAutoOpened();
+  }
+
+  private openExternalLink(url: string): void {
+    try {
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      const options: OpenLinkOptions = {
+        appLinkingOnly: false,
+        hideFailureTipDialog: true,
+      };
+      void context.openLink(url, options).catch((): void => this.showOpenLinkFailure());
+    } catch (_) {
+      this.showOpenLinkFailure();
+    }
+  }
+
+  private showOpenLinkFailure(): void {
+    try {
+      this.getUIContext().getPromptAction().showToast({
+        message: $r('app.string.settings_about_open_failed'),
+        duration: 3500,
+      });
+    } catch (_) {
+    }
+  }
+
+  private hasError(): boolean {
+    return this.errorText.trim().length > 0;
+  }
+
+  private useWideContentAnchor(): boolean {
+    return RustDeskLayoutTokens.useWideContentAnchor(this.viewportWidth, this.wideLayout);
+  }
+
+  private wideHubLeftInset(): number {
+    return RustDeskLayoutTokens.WIDE_CONTENT_EDGE - 12;
+  }
+
+  private decoderAvailable(item: DecoderCapability): boolean {
+    return item.mimeAvailable || item.hardwareAvailable || item.softwareAvailable || item.recommendedAvailable;
+  }
+
+  private decoderDisplayName(item: DecoderCapability): string {
+    if (item.recommendedName.trim().length > 0) {
+      return item.recommendedName.trim();
+    }
+    if (item.hardwareName.trim().length > 0) {
+      return item.hardwareName.trim();
+    }
+    if (item.softwareName.trim().length > 0) {
+      return item.softwareName.trim();
+    }
+    if (item.mime.trim().length > 0) {
+      return item.mime.trim();
+    }
+    return '系统未返回解码器名称';
+  }
+
+  private useDiagnosticColumns(): boolean {
+    return this.sheetViewportWidth >= 920;
+  }
+
+  private horizontalPadding(): Resource {
+    if (this.viewportWidth >= 1440) {
+      return $r('app.float.space_48');
+    }
+    if (this.viewportWidth >= 840) {
+      return $r('app.float.space_32');
+    }
+    return this.viewportWidth < 600 ? $r('app.float.space_16') : $r('app.float.space_24');
+  }
+
+  private sheetHorizontalPadding(): Resource {
+    if (this.sheetViewportWidth >= 920) {
+      return $r('app.float.space_32');
+    }
+    return this.sheetViewportWidth < 600 ? $r('app.float.space_16') : $r('app.float.space_24');
+  }
+
+  private hubBottomPadding(): number {
+    return (this.wideLayout ? 40 : 120) + this.bottomAvoidInset;
+  }
+
+  private hubFrameWidth(): number {
+    const sideRoom = this.viewportWidth < 600 ? 32 : 64;
+    return Math.max(320, Math.min(this.viewportWidth - sideRoom, 820));
+  }
+
+  private useTwoTileColumns(): boolean {
+    return this.viewportWidth >= 720;
+  }
+
+  private tileFrameWidth(): number {
+    if (!this.useTwoTileColumns()) {
+      return this.hubFrameWidth();
+    }
+    return (this.hubFrameWidth() - 14) / 2;
+  }
+
+  private tileSurfaceWidth(): number {
+    if (!this.useTwoTileColumns()) {
+      return Math.max(220, this.tileFrameWidth() - 8);
+    }
+    return Math.max(220, this.tileFrameWidth() - 24);
+  }
+
+  private tileFrameHeight(): number {
+    return 88;
+  }
+
+  private copySessionDefaults(source: SessionDefaults): SessionDefaults {
+    const defaults = new SessionDefaults();
+    defaults.touchMode = source.touchMode;
+    defaults.relativeMouseMode = source.relativeMouseMode;
+    defaults.rightClickGesture = source.rightClickGesture;
+    defaults.audioEnabled = source.audioEnabled;
+    defaults.clipboardEnabled = source.clipboardEnabled;
+    defaults.qualityPreset = source.qualityPreset;
+    defaults.customQuality = source.customQuality;
+    defaults.customFps = source.customFps;
+    defaults.preferredCodec = source.preferredCodec;
+    defaults.gesturesEnabled = source.gesturesEnabled;
+    defaults.toolbarExpanded = source.toolbarExpanded;
+    defaults.sessionSharingEnabled = source.sessionSharingEnabled;
+    return defaults;
+  }
+
+  private updateSessionDefaultsDraft(defaults: SessionDefaults): void {
+    const next = this.copySessionDefaults(defaults);
+    this.sessionDefaultsDraft = next;
+    this.onSessionDefaultsChange(this.copySessionDefaults(next));
+  }
+
+  private selectSection(section: SettingsSection): void {
+    if (section === 'session_input'
+      || section === 'session_quality'
+      || section === 'session_security'
+      || section === 'session_other') {
+      this.sessionDefaultsDraft = this.copySessionDefaults(this.sessionDefaults);
+    }
+    this.selectedSection = section;
+    this.settingsSheetVisible = true;
+    setTimeout(() => {
+      this.sheetScroller.scrollEdge(Edge.Top);
+    }, 0);
+  }
+
+  private closeSettingsSheet(): void {
+    this.settingsSheetVisible = false;
+  }
+
+  private sheetTitle(): ResourceStr {
+    if (this.selectedSection === 'tutorial') {
+      return $r('app.string.settings_tutorial_title');
+    }
+    if (this.selectedSection === 'server') {
+      return $r('app.string.settings_server_title');
+    }
+    if (this.selectedSection === 'account') {
+      return $r('app.string.settings_account_title');
+    }
+    if (this.selectedSection === 'session_input') {
+      return '输入模式';
+    }
+    if (this.selectedSection === 'session_quality') {
+      return '画质';
+    }
+    if (this.selectedSection === 'session_security') {
+      return '安全';
+    }
+    if (this.selectedSection === 'session_other') {
+      return '其他';
+    }
+    return '诊断与关于';
+  }
+
+  private sheetSubtitle(): ResourceStr {
+    if (this.selectedSection === 'tutorial') {
+      return $r('app.string.settings_tutorial_subtitle');
+    }
+    if (this.selectedSection === 'server') {
+      return $r('app.string.settings_server_subtitle');
+    }
+    if (this.selectedSection === 'account') {
+      return $r('app.string.settings_account_subtitle');
+    }
+    if (this.selectedSection === 'session_input') {
+      return '设置新远控会话的操作方式与右键手势';
+    }
+    if (this.selectedSection === 'session_quality') {
+      return '设置默认画质、帧率和编码器偏好';
+    }
+    if (this.selectedSection === 'session_security') {
+      return '管理服务端密码、双重认证和信任设备';
+    }
+    if (this.selectedSection === 'session_other') {
+      return '音频、剪贴板、手势和工具栏等默认行为';
+    }
+    return this.diagnosticSummary();
+  }
+
+  private serverSummary(): ResourceStr {
+    if (this.serverConfig.idServer.trim().length > 0) {
+      return this.serverConfig.idServer.trim();
+    }
+    return $r('app.string.settings_server_custom');
+  }
+
+  private accountSummary(): ResourceStr {
+    if (this.accountState.loggedIn) {
+      if (this.accountState.displayName.trim().length > 0) {
+        return this.accountState.displayName.trim();
+      }
+      if (this.accountState.name.trim().length > 0) {
+        return this.accountState.name.trim();
+      }
+      return $r('app.string.settings_account_signed_in');
+    }
+    if (this.accountState.apiServer.trim().length === 0) {
+      return $r('app.string.settings_account_api_unavailable');
+    }
+    return $r('app.string.settings_account_signed_out');
+  }
+
+  private sessionSummary(): ResourceStr {
+    if (this.sessionDefaults.touchMode) {
+      return $r('app.string.settings_pointer_touchpad');
+    }
+    return this.sessionDefaults.relativeMouseMode
+      ? $r('app.string.settings_pointer_relative')
+      : $r('app.string.settings_pointer_mouse');
+  }
+
+  private qualitySummary(): string {
+    if (this.sessionDefaults.qualityPreset === 'best') {
+      return '最佳画质';
+    }
+    if (this.sessionDefaults.qualityPreset === 'low') {
+      return '低带宽';
+    }
+    if (this.sessionDefaults.qualityPreset === 'custom') {
+      return `自定义 · ${this.sessionDefaults.customQuality}% · ${this.sessionDefaults.customFps} FPS`;
+    }
+    return '平衡';
+  }
+
+  private securitySummary(): string {
+    if (this.controlledTwoFactorState.enabled) {
+      return '2FA 已启用 · 密码仍为第一认证因素';
+    }
+    if (this.controlledHostState.permanentPasswordSet) {
+      return '固定密码已设置 · 可启用 2FA';
+    }
+    return '密码、2FA 与信任设备';
+  }
+
+  private diagnosticSummary(): string {
+    if (this.hasError()) {
+      return '检测到需要处理的运行日志';
+    }
+    return `版本与关于 · ${this.decoderCapabilities.length} 项视频能力`;
+  }
+
+  private diagnosticPanelWidth(): number {
+    if (this.useDiagnosticColumns()) {
+      return Math.max(300, (this.sheetViewportWidth - 24) / 2 - 16);
+    }
+    return Math.max(280, this.sheetViewportWidth - 16);
+  }
+
+  private diagnosticDecoderHeight(): number {
+    if (this.decoderCapabilities.length === 0) {
+      return 60;
+    }
+    return this.decoderCapabilities.length * 58;
+  }
+
+  @Builder
+  private SettingsTile(
+    section: SettingsSection,
+    icon: Resource,
+    title: ResourceStr,
+    summary: ResourceStr,
+    accentColor: ResourceColor,
+  ) {
+    Stack({ alignContent: Alignment.Center }) {
+      LuminousSurface({
+        depth: this.pressedSection === section ? -1 : 1,
+        surfaceWidth: this.tileSurfaceWidth(),
+        surfaceHeight: 72,
+        cornerRadius: 22,
+        motionEnabled: true,
+      }) {
+        Row({ space: 12 }) {
+          SymbolGlyph(icon)
+            .width(34)
+            .fontSize(27)
+            .fontColor([accentColor]);
+
+          Column({ space: 4 }) {
+            Text(title)
+              .width('100%')
+              .fontSize(14)
+              .lineHeight(18)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.neu_text_primary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+
+            Text(summary)
+              .width('100%')
+              .fontSize(11)
+              .lineHeight(16)
+              .fontColor($r('app.color.neu_text_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start);
+
+          SymbolGlyph($r('sys.symbol.chevron_right'))
+            .fontSize(14)
+            .fontColor([$r('app.color.neu_text_secondary')]);
+        }
+        .width(this.tileSurfaceWidth())
+        .height(72)
+        .padding({ left: 14, right: 12 })
+        .alignItems(VerticalAlign.Center);
+      }
+
+      Button({ type: ButtonType.Normal, stateEffect: false }) {
+        Row()
+      }
+      .width(this.tileSurfaceWidth())
+      .height(72)
+      .padding(0)
+      .backgroundColor(Color.Transparent)
+      .hoverEffect(HoverEffect.None)
+      .borderRadius(22)
+      .accessibilityText(title as Resource)
+      .onTouch((event: TouchEvent): void => {
+        if (event.type === TouchType.Down) {
+          this.pressedSection = section;
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.pressedSection = '';
+        }
+      })
+      .onClick(() => {
+        this.pressedSection = '';
+        this.selectSection(section);
+      });
+    }
+    .width(this.tileFrameWidth())
+    .height(this.tileFrameHeight())
+    .scale({
+      x: this.pressedSection === section ? 0.98 : 1,
+      y: this.pressedSection === section ? 0.98 : 1,
+    })
+    .animation({ duration: 120, curve: Curve.FastOutSlowIn })
+    .clip(false);
+  }
+
+  @Builder
+  private TileGrid() {
+    if (this.useTwoTileColumns()) {
+      Column({ space: 16 }) {
+        Row({ space: 14 }) {
+          this.SettingsTile(
+            'tutorial',
+            $r('sys.symbol.book'),
+            $r('app.string.settings_tutorial_title'),
+            $r('app.string.settings_tutorial_summary'),
+            $r('app.color.neu_accent'),
+          )
+          this.SettingsTile(
+            'server',
+            $r('sys.symbol.wifi_router'),
+            '服务器',
+            this.serverSummary(),
+            $r('app.color.neu_accent'),
+          )
+        }
+        .width(this.hubFrameWidth());
+
+        Row({ space: 14 }) {
+          this.SettingsTile(
+            'account',
+            $r('sys.symbol.person_crop_circle_fill'),
+            '账户',
+            this.accountSummary(),
+            $r('app.color.neu_accent'),
+          )
+          this.SettingsTile(
+            'session_input',
+            $r('sys.symbol.slider_horizontal_2'),
+            '输入模式',
+            this.sessionSummary(),
+            $r('app.color.success'),
+          )
+        }
+        .width(this.hubFrameWidth());
+
+        Row({ space: 14 }) {
+          this.SettingsTile(
+            'session_quality',
+            $r('sys.symbol.display'),
+            '画质',
+            this.qualitySummary(),
+            $r('app.color.neu_accent'),
+          )
+          this.SettingsTile(
+            'session_security',
+            $r('sys.symbol.info_circle'),
+            '安全',
+            this.securitySummary(),
+            $r('app.color.warning'),
+          )
+        }
+        .width(this.hubFrameWidth());
+
+        Row({ space: 14 }) {
+          this.SettingsTile(
+            'session_other',
+            $r('sys.symbol.gearshape'),
+            '其他',
+            '音频、剪贴板、手势与工具栏',
+            $r('app.color.neu_accent'),
+          )
+          this.SettingsTile(
+            'diagnostics',
+            $r('sys.symbol.info_circle'),
+            '诊断',
+            this.diagnosticSummary(),
+            this.hasError() ? $r('app.color.error') : $r('app.color.warning'),
+          )
+        }
+        .width(this.hubFrameWidth());
+      }
+      .width(this.hubFrameWidth());
+    } else {
+      Column({ space: 16 }) {
+        this.SettingsTile(
+          'tutorial',
+          $r('sys.symbol.book'),
+          $r('app.string.settings_tutorial_title'),
+          $r('app.string.settings_tutorial_summary'),
+          $r('app.color.neu_accent'),
+        )
+        this.SettingsTile(
+          'server',
+          $r('sys.symbol.wifi_router'),
+          '服务器',
+          this.serverSummary(),
+          $r('app.color.neu_accent'),
+        )
+        this.SettingsTile(
+          'account',
+          $r('sys.symbol.person_crop_circle_fill'),
+          '账户',
+          this.accountSummary(),
+          $r('app.color.neu_accent'),
+        )
+        this.SettingsTile(
+          'session_input',
+          $r('sys.symbol.slider_horizontal_2'),
+          '输入模式',
+          this.sessionSummary(),
+          $r('app.color.success'),
+        )
+        this.SettingsTile(
+          'session_quality',
+          $r('sys.symbol.display'),
+          '画质',
+          this.qualitySummary(),
+          $r('app.color.neu_accent'),
+        )
+        this.SettingsTile(
+          'session_security',
+          $r('sys.symbol.info_circle'),
+          '安全',
+          this.securitySummary(),
+          $r('app.color.warning'),
+        )
+        this.SettingsTile(
+          'session_other',
+          $r('sys.symbol.gearshape'),
+          '其他',
+          '音频、剪贴板、手势与工具栏',
+          $r('app.color.neu_accent'),
+        )
+        this.SettingsTile(
+          'diagnostics',
+          $r('sys.symbol.info_circle'),
+          '诊断',
+          this.diagnosticSummary(),
+          this.hasError() ? $r('app.color.error') : $r('app.color.warning'),
+        )
+      }
+      .width(this.hubFrameWidth())
+      .alignItems(HorizontalAlign.Center);
+    }
+  }
+
+  @Builder
+  private SettingsHub() {
+    Column() {
+      this.TileGrid();
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Center);
+  }
+
+  @Builder
+  private LinkRow(label: ResourceStr, showDivider: boolean, onClick: () => void) {
+    Button({ type: ButtonType.Normal, stateEffect: true }) {
+      Row({ space: 10 }) {
+        Text(label)
+          .layoutWeight(1)
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.neu_text_primary'));
+        Text($r('app.string.settings_about_open'))
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('app.color.neu_accent'));
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(14)
+          .fontColor([$r('app.color.neu_text_secondary')]);
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center);
+    }
+    .width('100%')
+    .constraintSize({ minHeight: 44 })
+    .padding({ left: 0, right: 0 })
+    .backgroundColor(Color.Transparent)
+    .border({
+      width: { bottom: showDivider ? 0.5 : 0 },
+      color: $r('app.color.divider'),
+    })
+    .hoverEffect(HoverEffect.Auto)
+    .onClick(onClick);
+  }
+
+  @Builder
+  private StatusTag(text: string, color: ResourceColor, _background: ResourceColor) {
+    Stack({ alignContent: Alignment.Center }) {
+      LuminousSurface({
+        depth: -1,
+        surfaceWidth: 62,
+        surfaceHeight: 28,
+        cornerRadius: 10,
+        motionEnabled: true,
+      }) {
+        Text(text)
+          .fontSize(10)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(color)
+          .maxLines(1);
+      }
+    }
+    .width(68)
+    .height(32)
+    .clip(false);
+  }
+
+  @Builder
+  private DiagnosticIdentityUnit() {
+    Stack({ alignContent: Alignment.Center }) {
+      LuminousSurface({
+        depth: 1,
+        surfaceWidth: this.diagnosticPanelWidth(),
+        surfaceHeight: 78,
+        cornerRadius: 22,
+        motionEnabled: true,
+      }) {
+        Row({ space: 12 }) {
+          Image($r('app.media.resk'))
+            .width(52)
+            .height(52)
+            .borderRadius(12);
+
+          Column({ space: 3 }) {
+            Text('Resk')
+              .width('100%')
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.neu_text_primary'));
+            Text(`版本 ${this.appVersionName}`)
+              .width('100%')
+              .fontSize(11)
+              .fontColor($r('app.color.neu_text_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis });
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start);
+        }
+        .width(this.diagnosticPanelWidth())
+        .height(78)
+        .padding({ left: 14, right: 14 })
+        .alignItems(VerticalAlign.Center);
+      }
+    }
+    .width(this.diagnosticPanelWidth() + 16)
+    .height(94)
+    .clip(false);
+  }
+
+  @Builder
+  private BuildUnit() {
+    Column({ space: 6 }) {
+      Text('关于')
+        .width('100%')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.neu_text_primary'));
+
+      Stack({ alignContent: Alignment.Center }) {
+        LuminousSurface({
+          depth: 1,
+          surfaceWidth: this.diagnosticPanelWidth(),
+          surfaceHeight: 108,
+          cornerRadius: 20,
+          motionEnabled: true,
+        }) {
+          Column({ space: 0 }) {
+            this.LinkRow($r('app.string.settings_about_website'), true,
+              () => this.openExternalLink(RUSTDESK_WEBSITE_URL))
+            this.LinkRow($r('app.string.settings_about_privacy'), false,
+              () => this.openExternalLink(RUSTDESK_PRIVACY_URL))
+          }
+          .width(this.diagnosticPanelWidth())
+          .height(108)
+          .padding({ left: 14, right: 14, top: 10, bottom: 10 });
+        }
+      }
+      .width(this.diagnosticPanelWidth() + 16)
+      .height(124)
+      .clip(false);
+    }
+    .width(this.diagnosticPanelWidth() + 16)
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  @Builder
+  private DecoderUnit(item: DecoderCapability, showDivider: boolean) {
+    Row({ space: 10 }) {
+      Column({ space: 2 }) {
+        Text(item.codec)
+          .width('100%')
+          .fontSize(13)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.neu_text_primary'));
+        Text(this.decoderDisplayName(item))
+          .width('100%')
+          .fontSize(10)
+          .fontColor($r('app.color.neu_text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start);
+
+      if (item.hardwareAvailable) {
+        this.StatusTag('硬解', $r('app.color.success'), $r('app.color.success_soft'))
+      } else if (item.softwareAvailable) {
+        this.StatusTag('软解', $r('app.color.neu_accent'), $r('app.color.brand_primary_soft'))
+      } else if (item.mimeAvailable) {
+        this.StatusTag('MIME', $r('app.color.warning'), $r('app.color.warning_soft'))
+      } else {
+        this.StatusTag('不支持', $r('app.color.error'), $r('app.color.error_soft'))
+      }
+    }
+    .width(this.diagnosticPanelWidth())
+    .constraintSize({ minHeight: 58 })
+    .padding({ left: 14, right: 14 })
+    .alignItems(VerticalAlign.Center)
+    .border({
+      width: { bottom: showDivider ? 0.5 : 0 },
+      color: $r('app.color.divider'),
+    });
+  }
+
+  @Builder
+  private DecoderUnits() {
+    Column({ space: 6 }) {
+      Text('视频解码')
+        .width('100%')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.neu_text_primary'));
+
+      Stack({ alignContent: Alignment.Center }) {
+        LuminousSurface({
+          depth: 1,
+          surfaceWidth: this.diagnosticPanelWidth(),
+          surfaceHeight: this.diagnosticDecoderHeight(),
+          cornerRadius: 20,
+          motionEnabled: true,
+        }) {
+          Column({ space: 0 }) {
+            if (this.decoderCapabilities.length === 0) {
+              Row({ space: 10 }) {
+                Text('解码器')
+                  .fontSize(13)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.neu_text_primary'));
+                Text('正在查询设备能力')
+                  .layoutWeight(1)
+                  .fontSize(11)
+                  .fontColor($r('app.color.neu_text_secondary'))
+                  .textAlign(TextAlign.End);
+              }
+              .width(this.diagnosticPanelWidth())
+              .height(60)
+              .padding({ left: 14, right: 14 });
+            } else {
+              ForEach(this.decoderCapabilities, (item: DecoderCapability, index: number) => {
+                this.DecoderUnit(item, index < this.decoderCapabilities.length - 1)
+              }, (item: DecoderCapability) => item.codec)
+            }
+          }
+          .width(this.diagnosticPanelWidth())
+          .height(this.diagnosticDecoderHeight())
+          .borderRadius(20)
+          .clip(true);
+        }
+      }
+      .width(this.diagnosticPanelWidth() + 16)
+      .height(this.diagnosticDecoderHeight() + 16)
+      .clip(false);
+    }
+    .width(this.diagnosticPanelWidth() + 16)
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  @Builder
+  private DiagnosticErrorUnit() {
+    if (this.hasError()) {
+      Row({ space: $r('app.float.space_12') }) {
+        Text('!')
+          .width($r('app.float.control_compact'))
+          .height($r('app.float.control_compact'))
+          .fontSize($r('app.float.font_body'))
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.error'))
+          .textAlign(TextAlign.Center)
+          .backgroundColor($r('app.color.transparent'))
+          .borderRadius($r('app.float.radius_10'));
+
+        Column({ space: $r('app.float.space_4') }) {
+          Text('运行日志')
+            .width('100%')
+            .fontSize($r('app.float.font_body'))
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.error'));
+          Text(this.errorText)
+            .width('100%')
+            .fontSize($r('app.float.font_label'))
+            .lineHeight(18)
+            .fontColor($r('app.color.text_primary'));
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start);
+      }
+      .width('100%')
+      .padding($r('app.float.space_16'))
+      .backgroundColor($r('app.color.error_soft'))
+      .borderRadius($r('app.float.radius_18'));
+    }
+  }
+
+  @Builder
+  private DiagnosticRefreshButton() {
+    LuminousButton({
+      label: '刷新诊断信息',
+      controlWidth: this.diagnosticPanelWidth(),
+      controlSizeMode: LuminousControlSize.Compact,
+      tone: LuminousTone.Accent,
+      motionEnabled: true,
+      onAction: () => this.onRefresh(),
+    })
+  }
+
+  @Builder
+  private DiagnosticsPage() {
+    Column({ space: 12 }) {
+      if (this.useDiagnosticColumns()) {
+        Row({ space: 24 }) {
+          Column({ space: 12 }) {
+            this.DiagnosticIdentityUnit()
+            this.DiagnosticRefreshButton()
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start);
+
+          Column({ space: 12 }) {
+            this.BuildUnit()
+            this.DecoderUnits()
+            this.DiagnosticErrorUnit()
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start);
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top);
+      } else {
+        Column({ space: 12 }) {
+          this.DiagnosticIdentityUnit()
+          this.BuildUnit()
+          this.DecoderUnits()
+          this.DiagnosticErrorUnit()
+          this.DiagnosticRefreshButton()
+        }
+        .width('100%');
+      }
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start);
+  }
+
+  @Builder
+  private SelectedSettingsContent() {
+    if (this.selectedSection === 'tutorial') {
+      BeginnerGuidePage()
+    } else if (this.selectedSection === 'server') {
+      ServerSettingsCard({
+        showHeader: false,
+        config: this.serverConfig,
+        validating: this.serverValidating,
+        saving: this.serverSaving,
+        onConfigChange: (config: ServerConfig) => this.onServerConfigChange(config),
+        onValidate: (config: ServerConfig) => this.onValidateServerConfig(config),
+        onSave: (config: ServerConfig) => this.onSaveServerConfig(config),
+      })
+    } else if (this.selectedSection === 'account') {
+      AccountSettingsCard({
+        showHeader: false,
+        accountState: this.accountState,
+        loginProviders: this.accountLoginProviders,
+        onLogin: (username: string, password: string) => this.onAccountLogin(username, password),
+        onVerify: (code: string) => this.onAccountVerify(code),
+        onCancelChallenge: () => this.onAccountCancelChallenge(),
+        onOidcLogin: (provider: string) => this.onAccountOidcLogin(provider),
+        onOidcCancel: () => this.onAccountOidcCancel(),
+        onSync: () => this.onAddressBookSync(),
+        onLogout: () => this.onAccountLogout(),
+      })
+    } else if (this.selectedSection === 'session_input') {
+      SessionDefaultsCard({
+        showHeader: false,
+        section: 'input',
+        defaults: this.sessionDefaultsDraft,
+        onDefaultsChange: (defaults: SessionDefaults) => this.updateSessionDefaultsDraft(defaults),
+      })
+    } else if (this.selectedSection === 'session_quality') {
+      SessionDefaultsCard({
+        showHeader: false,
+        section: 'quality',
+        defaults: this.sessionDefaultsDraft,
+        onDefaultsChange: (defaults: SessionDefaults) => this.updateSessionDefaultsDraft(defaults),
+      })
+    } else if (this.selectedSection === 'session_security') {
+      HostSecuritySettingsCard({
+        hostState: this.controlledHostState,
+        twoFactor: this.controlledTwoFactorState,
+        onRefresh: () => this.onControlledRefresh(),
+        onPasswordModeChange: (mode: ControlledPasswordMode) => this.onControlledPasswordModeChange(mode),
+        onSetPermanentPassword: (password: string, confirmation: string) =>
+          this.onControlledSetPermanentPassword(password, confirmation),
+        onRemovePermanentPassword: () => this.onControlledRemovePermanentPassword(),
+        onBeginTwoFactor: () => this.onControlledBeginTwoFactor(),
+        onVerifyTwoFactor: (code: string) => this.onControlledVerifyTwoFactor(code),
+        onCancelTwoFactor: () => this.onControlledCancelTwoFactor(),
+        onDisableTwoFactor: () => this.onControlledDisableTwoFactor(),
+        onTrustedDevicesEnabledChange: (enabled: boolean) =>
+          this.onControlledTrustedDevicesEnabledChange(enabled),
+        onRemoveTrustedDevice: (device: ControlledTrustedDevice) => this.onControlledRemoveTrustedDevice(device),
+        onClearTrustedDevices: () => this.onControlledClearTrustedDevices(),
+      })
+    } else if (this.selectedSection === 'session_other') {
+      SessionDefaultsCard({
+        showHeader: false,
+        section: 'other',
+        defaults: this.sessionDefaultsDraft,
+        onDefaultsChange: (defaults: SessionDefaults) => this.updateSessionDefaultsDraft(defaults),
+      })
+    } else {
+      this.DiagnosticsPage()
+    }
+  }
+
+  @Builder
+  private SettingsHubPage() {
+    Scroll(this.scroller) {
+      Column() {
+        Blank()
+          .width('100%')
+          .height(this.titleSpacerHeight)
+          .flexShrink(0);
+
+        Row() {
+          Column() {
+            this.SettingsHub()
+          }
+          .width(this.hubFrameWidth())
+          .alignItems(HorizontalAlign.Center);
+        }
+        .width('100%')
+        .justifyContent(this.useWideContentAnchor() ? FlexAlign.Start : FlexAlign.Center)
+        .alignItems(VerticalAlign.Top)
+        .padding({
+          left: this.useWideContentAnchor() ? this.wideHubLeftInset() : this.horizontalPadding(),
+          right: this.useWideContentAnchor() ? 0 : this.horizontalPadding(),
+          top: RustDeskLayoutTokens.PAGE_CONTENT_TOP_PADDING,
+          bottom: this.hubBottomPadding(),
+        });
+      }
+      .width('100%')
+      .constraintSize({ minHeight: '100%' })
+      .backgroundColor($r('app.color.neu_base'));
+    }
+    .width('100%')
+    .height('100%')
+    .scrollBar(BarState.Off)
+    .backgroundColor($r('app.color.neu_base'))
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      const height = Number(newArea.height);
+      if (height > 0) {
+        this.hubViewportHeight = height;
+      }
+    });
+  }
+
+  @Builder
+  private SettingsSheet() {
+    HdsNavigation() {
+      Scroll(this.sheetScroller) {
+        Column() {
+          Row() {
+            Column() {
+              this.SelectedSettingsContent()
+            }
+            .width('100%')
+            .constraintSize({ maxWidth: 960 })
+            .alignItems(HorizontalAlign.Start)
+            .onAreaChange((_oldArea: Area, newArea: Area) => {
+              const width = Number(newArea.width);
+              if (width > 0) {
+                this.sheetViewportWidth = width;
+              }
+            });
+          }
+          .width('100%')
+          .constraintSize({ minHeight: this.sheetViewportHeight })
+          .justifyContent(FlexAlign.Center)
+          .alignItems(VerticalAlign.Top)
+          .padding({
+            left: this.sheetHorizontalPadding(),
+            right: this.sheetHorizontalPadding(),
+            top: $r('app.float.space_24'),
+            bottom: $r('app.float.space_24'),
+          });
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Center)
+        .backgroundColor($r('app.color.neu_base'));
+      }
+      .width('100%')
+      .height('100%')
+      .clip(false)
+      .scrollBar(BarState.Off)
+      .backgroundColor($r('app.color.neu_base'))
+      .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
+      .nestedScroll({
+        scrollForward: NestedScrollMode.PARENT_FIRST,
+        scrollBackward: NestedScrollMode.SELF_FIRST,
+      })
+      .onAreaChange((_oldArea: Area, newArea: Area) => {
+        const height = Number(newArea.height);
+        if (height > 0) {
+          this.sheetViewportHeight = height;
+        }
+      })
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM]);
+    }
+    .mode(NavigationMode.Stack)
+    .titleMode(HdsNavigationTitleMode.MODAL)
+    .hideBackButton(true)
+    .titleBar({
+      enableComponentSafeArea: true,
+      content: {
+        title: {
+          mainTitle: this.sheetTitle(),
+          subTitle: this.sheetSubtitle(),
+        },
+        menu: {
+          value: [{
+            content: {
+              label: '关闭',
+              icon: $r('sys.symbol.xmark'),
+              type: IconStyleMode.SMALL,
+              action: () => this.closeSettingsSheet(),
+            },
+          }],
+        },
+      },
+      style: {
+        scrollEffectOpts: {
+          enableScrollEffect: false,
+          scrollEffectType: ScrollEffectType.GRADIENT_BLUR,
+        },
+        systemMaterialEffect: {
+          materialType: hdsMaterial.MaterialType.ADAPTIVE,
+          materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE,
+        },
+      },
+    })
+    .bindToScrollable([this.sheetScroller])
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.neu_base'))
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM]);
+  }
+
+  build() {
+    Stack() {
+      this.SettingsHubPage()
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.neu_base'))
+    .bindSheet(this.settingsSheetVisible!!, this.SettingsSheet(), {
+      height: SheetSize.LARGE,
+      preferType: SheetType.CENTER,
+      showClose: false,
+      dragBar: false,
+      enableFloatingDragBar: false,
+      backgroundColor: $r('app.color.neu_base'),
+    })
+    .onAreaChange((_oldArea: Area, newArea: Area) => {
+      const width = Number(newArea.width);
+      if (width > 0) {
+        this.viewportWidth = width;
+      }
+    });
+  }
+}

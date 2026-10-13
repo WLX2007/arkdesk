@@ -1,0 +1,16 @@
+{
+  "string": [
+  ],
+  "color": [
+    { "name": "text_inverse", "value": "#10181F" },
+    { "name": "text_secondary", "value": "#A9BECF" },
+    { "name": "text_tertiary", "value": "#7E95A8" },
+    { "name": "text_primary", "value": "#E9F1F8" },
+    { "name": "brand_primary", "value": "#5AA2E8" },
+    { "name": "brand_primary_soft", "value": "#263B50" },
+    { "name": "surface_secondary", "value": "#1D2A37" },
+    { "name": "surface", "value": "#17222D" },
+    { "name": "field_background", "value": "#1D2A37" },
+    { "name": "error", "value": "#EC7A72" }
+  ]
+}

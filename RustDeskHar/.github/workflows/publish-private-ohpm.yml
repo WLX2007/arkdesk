@@ -1,0 +1,327 @@
+name: Publish RustDesk HAR
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      dispatch_downstream:
+        description: Dispatch ArkTS after publishing the HAR
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || 'main' }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  OHOS_COMMAND_LINE_TOOLS_VERSION: 6.1.1.280
+  OHRS_VERSION: 1.3.1
+  PACKAGE_NAME: rustdesk-ohrs
+  CORE_REPOSITORY: ${{ vars.CORE_REPOSITORY || 'FrankHan052176/rustdesk4ohos' }}
+  CORE_REF: ${{ vars.CORE_REF || 'master' }}
+  ARKTS_REPOSITORY: ${{ vars.ARKTS_REPOSITORY || 'FrankHan052176/RustDesk-ArkTS' }}
+  CODEARTS_OHPM_REGISTRY: https://devrepo.devcloud.cn-north-4.huaweicloud.com/artgalaxy/api/ohpm/cn-north-4_c07b1b38744f424b8d87a86532d38003_ohpm_1/
+
+jobs:
+  source:
+    name: Source
+    runs-on: ubuntu-22.04
+    outputs:
+      repository: ${{ steps.source.outputs.repository }}
+      sha: ${{ steps.source.outputs.sha }}
+      ref: ${{ steps.source.outputs.ref }}
+    steps:
+      - name: Source
+        id: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ref="$CORE_REF"
+          case "$ref" in
+            refs/*) api_ref="$ref"; source_ref="$ref" ;;
+            *) api_ref="refs/heads/$ref"; source_ref="refs/heads/$ref" ;;
+          esac
+          sha="$(curl --fail-with-body --silent --show-error \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$CORE_REPOSITORY/commits/$(jq -rn --arg ref "$api_ref" '$ref | @uri')" \
+            | jq -er '.sha')"
+          echo "repository=$CORE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha,,}" >> "$GITHUB_OUTPUT"
+          echo "ref=$source_ref" >> "$GITHUB_OUTPUT"
+
+  poll:
+    name: Poll
+    needs: source
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-22.04
+    outputs:
+      build: ${{ steps.result.outputs.build }}
+    steps:
+      - name: Cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/core-published
+          key: rustdesk-core-${{ needs.source.outputs.sha }}-har-${{ github.sha }}
+          lookup-only: true
+      - name: Result
+        id: result
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ steps.restore.outputs.cache-hit }}" == "true" ]]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build
+    needs: [source, poll]
+    if: >-
+      ${{
+        always() &&
+        needs.source.result == 'success' &&
+        (
+          github.event_name != 'schedule' ||
+          (needs.poll.result == 'success' && needs.poll.outputs.build == 'true')
+        )
+      }}
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: HAR
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: R_RustDesk-Har
+          persist-credentials: false
+
+      - name: Core
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ needs.source.outputs.repository }}
+          ref: ${{ needs.source.outputs.sha }}
+          path: R_RustDesk-Core
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Version
+        id: version
+        shell: bash
+        env:
+          CORE_SHA: ${{ needs.source.outputs.sha }}
+        run: |
+          set -euo pipefail
+          git -C R_RustDesk-Core fetch --force --tags --no-recurse-submodules \
+            https://github.com/rustdesk/rustdesk.git
+          cargo_version="$(awk -F '"' '/^version[[:space:]]*=[[:space:]]*"/ { print $2; exit }' R_RustDesk-Core/Cargo.toml)"
+          last_tag="$(git -C R_RustDesk-Core describe --tags --abbrev=0 \
+            --match '[0-9]*.[0-9]*.[0-9]*' \
+            --match 'v[0-9]*.[0-9]*.[0-9]*' HEAD 2>/dev/null || true)"
+          core_version="$cargo_version"
+          if [[ -n "$last_tag" ]]; then
+            tag_version="${last_tag#v}"
+            core_version="$(printf '%s\n' "$cargo_version" "$tag_version" | sort -V | tail -n 1)"
+            core_commit_count="$(git -C R_RustDesk-Core rev-list --count "$last_tag..HEAD")"
+          else
+            core_commit_count="$(git -C R_RustDesk-Core rev-list --count HEAD)"
+          fi
+          printf -v core_commit_serial '%06d' "$core_commit_count"
+          printf -v run_serial '%09d' "$GITHUB_RUN_NUMBER"
+          printf -v attempt_serial '%02d' "$GITHUB_RUN_ATTEMPT"
+          version="${core_version}-r${core_commit_serial}-${run_serial}-${attempt_serial}-g${CORE_SHA:0:8}"
+          jq --arg version "$version" '.version = $version' \
+            R_RustDesk-Har/package/oh-package.json5 > "$RUNNER_TEMP/oh-package.json5"
+          mv "$RUNNER_TEMP/oh-package.json5" R_RustDesk-Har/package/oh-package.json5
+          jq -n \
+            --arg core_sha "${CORE_SHA,,}" \
+            --arg har_sha "${GITHUB_SHA,,}" \
+            --arg package_name "$PACKAGE_NAME" \
+            --arg package_version "$version" \
+            '{
+              core_sha: $core_sha,
+              har_sha: $har_sha,
+              package_name: $package_name,
+              package_version: $package_version
+            }' > R_RustDesk-Har/package/release-provenance.json
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "$PACKAGE_NAME@$version"
+
+      - name: Tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes cmake git make ninja-build perl
+
+      - name: SDK
+        uses: ErBWs/setup-ohos@4dbb63025116eb6165ceac58a4bf47cbdc5ac721 # v2
+        with:
+          version: ${{ env.OHOS_COMMAND_LINE_TOOLS_VERSION }}
+          cache: true
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+          targets: aarch64-unknown-linux-ohos
+          components: ''
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install ohrs --version "$OHRS_VERSION" --locked
+          bash R_RustDesk-Har/scripts/build-har.sh
+          tar -xOzf R_RustDesk-Har/package.har package/release-provenance.json \
+            | jq -e \
+              --arg core_sha "${{ needs.source.outputs.sha }}" \
+              --arg har_sha "$GITHUB_SHA" \
+              --arg package_version "${{ steps.version.outputs.version }}" \
+              '.core_sha == ($core_sha | ascii_downcase)
+                and .har_sha == ($har_sha | ascii_downcase)
+                and .package_version == $package_version' \
+              >/dev/null
+
+      - name: Artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rustdesk-ohrs-${{ steps.version.outputs.version }}
+          path: R_RustDesk-Har/package.har
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  publish:
+    name: Publish
+    needs: [source, poll, build]
+    if: >-
+      ${{
+        always() &&
+        github.event_name != 'pull_request' &&
+        needs.build.result == 'success'
+      }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: rustdesk-ohrs-${{ needs.build.outputs.version }}
+          path: release
+
+      - name: SDK
+        uses: ErBWs/setup-ohos@4dbb63025116eb6165ceac58a4bf47cbdc5ac721 # v2
+        with:
+          version: ${{ env.OHOS_COMMAND_LINE_TOOLS_VERSION }}
+          cache: true
+
+      - name: Publish
+        shell: bash
+        env:
+          CODEARTS_PRIVATE_OHPM: ${{ secrets.CODEARTS_PRIVATE_OHPM }}
+          CORE_SHA: ${{ needs.source.outputs.sha }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          : "${CODEARTS_PRIVATE_OHPM:?CODEARTS_PRIVATE_OHPM is required}"
+          private_config="$HOME/.ohpm/.ohpmrc"
+          mkdir -p "$(dirname "$private_config")"
+          umask 077
+          printf '%s' "$CODEARTS_PRIVATE_OHPM" > "$private_config"
+          trap 'rm -f "$private_config"' EXIT
+          published=false
+          for attempt in 1 2 3; do
+            if ohpm info "$PACKAGE_NAME@$PACKAGE_VERSION" \
+              --registry "$CODEARTS_OHPM_REGISTRY" \
+              --fetch_timeout 30000 >/dev/null 2>&1; then
+              echo "$PACKAGE_NAME@$PACKAGE_VERSION is already available in CodeArts."
+              published=true
+              break
+            fi
+
+            echo "Publishing $PACKAGE_NAME@$PACKAGE_VERSION (attempt $attempt/3)."
+            if ohpm publish --publish_registry "$CODEARTS_OHPM_REGISTRY" release/package.har; then
+              published=true
+              break
+            fi
+
+            # A timed-out upload may still have completed server-side. Check the immutable
+            # version before retrying so a duplicate-version response does not fail the run.
+            if ohpm info "$PACKAGE_NAME@$PACKAGE_VERSION" \
+              --registry "$CODEARTS_OHPM_REGISTRY" \
+              --fetch_timeout 30000 >/dev/null 2>&1; then
+              echo "$PACKAGE_NAME@$PACKAGE_VERSION became available after the publish error."
+              published=true
+              break
+            fi
+
+            if (( attempt < 3 )); then
+              sleep $((attempt * 15))
+            fi
+          done
+          if [[ "$published" != true ]]; then
+            echo "Failed to publish $PACKAGE_NAME@$PACKAGE_VERSION after 3 attempts." >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/core-published"
+          printf '%s\n' "$CORE_SHA" > "$RUNNER_TEMP/core-published/sha"
+          printf 'Published `%s@%s` from Core `%s` and HAR `%s`.\n' \
+            "$PACKAGE_NAME" "$PACKAGE_VERSION" "$CORE_SHA" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dispatch_downstream }}
+        shell: bash
+        env:
+          DOWNSTREAM_DISPATCH_TOKEN: ${{ secrets.DOWNSTREAM_DISPATCH_TOKEN }}
+          CORE_REPOSITORY: ${{ needs.source.outputs.repository }}
+          CORE_REF: ${{ needs.source.outputs.ref }}
+          CORE_SHA: ${{ needs.source.outputs.sha }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          : "${DOWNSTREAM_DISPATCH_TOKEN:?DOWNSTREAM_DISPATCH_TOKEN is required}"
+          jq -n \
+            --arg harRepository "$GITHUB_REPOSITORY" \
+            --arg coreRepository "$CORE_REPOSITORY" \
+            --arg coreRef "$CORE_REF" \
+            --arg coreSha "$CORE_SHA" \
+            --arg packageName "$PACKAGE_NAME" \
+            --arg packageVersion "$PACKAGE_VERSION" \
+            --arg harSha "$GITHUB_SHA" \
+            '{event_type: "rustdesk-har-published", client_payload: {
+              har_repository: $harRepository,
+              har_sha: $harSha,
+              core_repository: $coreRepository,
+              core_ref: $coreRef,
+              core_sha: $coreSha,
+              package_name: $packageName,
+              package_version: $packageVersion
+            }}' > "$RUNNER_TEMP/dispatch.json"
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $DOWNSTREAM_DISPATCH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$ARKTS_REPOSITORY/dispatches" \
+            --data-binary "@$RUNNER_TEMP/dispatch.json"
+
+      - name: Mark
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/core-published
+          key: rustdesk-core-${{ needs.source.outputs.sha }}-har-${{ github.sha }}

@@ -1,0 +1,42 @@
+# 构建产物与缓存
+build/
+entry/build/
+**/build/
+oh_modules/
+**/oh_modules/
+.hvigor/
+**/.hvigor/
+.cxx/
+**/.cxx/
+.cppBuildCache/
+**/.cppBuildCache/
+
+# 签名材料（含密码，严禁提交）
+**/*.p12
+**/*.cer
+**/*.p7b
+**/*.csr
+
+# 大型上游内核仓库（独立仓库，另行管理）
+rustdesk4ohos/
+
+# 参考用的外部仓库源码
+deveco-cli/
+
+# 临时与本地文件
+*.log
+build_log.txt
+*.jpeg
+*.jpg
+*.zip
+har_out/
+har_stage/
+*.har
+!RustDesk-ArkTS/rustdesk-ohrs.har.lock
+.DS_Store
+Thumbs.db
+
+# DevEco 本地配置
+**/local.properties
+.idea/
+.vscode/

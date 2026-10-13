@@ -1,0 +1,10 @@
+{
+  "modelVersion": "6.1.0",
+  "name": "luminous_neo",
+  "version": "1.0.2",
+  "description": "Local stand-in for the private luminous_neo UI library. Flat styling, identical exported API surface.",
+  "main": "Index.ets",
+  "author": "",
+  "license": "AGPL-3.0",
+  "dependencies": {}
+}

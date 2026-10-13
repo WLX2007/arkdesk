@@ -1,0 +1,1 @@
+HAR package includes its own color tokens mirroring app theme (see har_stage/package/src/main/resources).

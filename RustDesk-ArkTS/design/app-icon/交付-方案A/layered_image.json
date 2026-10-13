@@ -1,0 +1,6 @@
+{
+  "layered-image": {
+    "background": "$media:resk_background",
+    "foreground": "$media:resk_foreground"
+  }
+}

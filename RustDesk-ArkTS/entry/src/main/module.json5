@@ -1,0 +1,110 @@
+{
+  "module": {
+    "name": "entry",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "EntryAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "crossAppSharedConfig": "$profile:easytier_api_shared_config",
+    "metadata": [
+      {
+        "name": "configColorModeChangePerformanceInArkUI",
+        "value": "true"
+      }
+    ],
+    "abilities": [
+      {
+        "name": "EntryAbility",
+        "srcEntry": "./ets/entryability/EntryAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "label": "$string:EntryAbility_label",
+        "icon": "$media:resk",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "orientation": "follow_desktop",
+        "preferMultiWindowOrientation": "landscape_auto",
+        "continuable": true,
+        "backgroundModes": [
+          "dataTransfer",
+          "audioRecording"
+        ],
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ]
+          },
+          {
+            "entities": [
+              "entity.system.browsable"
+            ],
+            "actions": [
+              "ohos.want.action.viewData"
+            ],
+            "uris": [
+              {
+                "scheme": "resk",
+                "host": "handoff",
+                "path": "remote"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "StatusBarBackgroundAbility",
+        "srcEntry": "./ets/backgroundability/StatusBarBackgroundAbility.ets",
+        "description": "$string:EntryAbility_desc",
+        "label": "$string:EntryAbility_label",
+        "icon": "$media:resk",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": false
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING"
+      },
+      {
+        "name": "ohos.permission.INTERNET",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.READ_PASTEBOARD",
+        "reason": "$string:read_pasteboard_permission_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.INTERCEPT_INPUT_EVENT",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="fgC_white" gradientUnits="userSpaceOnUse" x1="200" y1="260" x2="800" y2="800">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E2EEFB"/>
+    </linearGradient>
+    <linearGradient id="fgC_mint" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#7BF0CE"/>
+      <stop offset="1" stop-color="#33CB9C"/>
+    </linearGradient>
+    <radialGradient id="fgC_dotGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#5FE7BC" stop-opacity="0.52"/>
+      <stop offset="0.5" stop-color="#5FE7BC" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#5FE7BC" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="fgC_shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#123A63" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+  <g transform="translate(4,0)">
+    <g filter="url(#fgC_shadow)">
+      <rect x="212" y="288" width="520" height="344" rx="86" fill="none" stroke="url(#fgC_white)" stroke-width="56"/>
+      <rect x="484" y="644" width="56" height="96" rx="10" fill="url(#fgC_white)"/>
+      <rect x="392" y="732" width="240" height="56" rx="28" fill="url(#fgC_white)"/>
+      <path d="M0 0 L0 148 L38 112 L64 170 L96 156 L70 98 L118 98 Z"
+            transform="translate(392,360) scale(1.35)" fill="url(#fgC_mint)"/>
+    </g>
+    <circle cx="778" cy="288" r="128" fill="url(#fgC_dotGlow)"/>
+    <circle cx="778" cy="288" r="62" fill="url(#fgC_mint)"/>
+  </g>
+</svg>
