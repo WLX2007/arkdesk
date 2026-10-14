@@ -63,8 +63,8 @@ ArkDesk（以下简称"本应用"）是由独立开发者（以下简称"我们"
 
 如您对本政策或数据处理有任何疑问、投诉或建议，请联系我们：
 
-- 邮箱：**support@xhenr.cloud**（请替换为你的实际邮箱）
-- 源码仓库：https://github.com/xhenr/arkdesk
+- 邮箱：**wlx20070108@qq.com**
+- 源码仓库：https://github.com/WLX2007/arkdesk
 
 我们将在 15 个工作日内回复。
 

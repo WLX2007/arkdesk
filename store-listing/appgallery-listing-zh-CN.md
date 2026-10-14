@@ -1,6 +1,6 @@
 # ArkDesk 应用市场介绍文案（华为 AppGallery）
 
-> 使用说明：文案中的 `https://xhenr.github.io/arkdesk` 为源码披露与隐私政策地址，上架前请确认该页面可公开访问。
+> 使用说明：文案中的源码披露与隐私政策地址均已指向实际页面，上架前请确认 https://wlx2007.github.io/arkdesk/privacy-policy-zh-CN 可公开访问（需在仓库开启 GitHub Pages）。
 
 ## 一、应用名称
 
@@ -36,7 +36,7 @@
 
 ArkDesk 基于 RustDesk 项目（https://github.com/rustdesk/rustdesk，AGPL-3.0 许可证）修改而成，本应用的完整源码依据许可证要求公开于：
 
-https://github.com/xhenr/arkdesk
+https://github.com/WLX2007/arkdesk
 
 ArkDesk 为社区独立开发的非官方客户端，与 RustDesk 官方（Purslane Ltd）无隶属或代言关系。
 
@@ -63,7 +63,7 @@ ArkDesk 为社区独立开发的非官方客户端，与 RustDesk 官方（Pursl
 
 ## 五、审核备注建议（提交 AGC 时填写）
 
-- 本应用为开源项目 RustDesk 的 AGPL-3.0 修改版，源码：https://github.com/xhenr/arkdesk；
+- 本应用为开源项目 RustDesk 的 AGPL-3.0 修改版，源码：https://github.com/WLX2007/arkdesk；
 - 应用仅作为远程桌面**主控端**（控制远端设备），不实现本机被控/监听能力；
 - `ohos.permission.INTERNET`：与用户指定的远程设备及服务器建立连接；
 - `ohos.permission.READ_PASTEBOARD`：连接建立后同步剪贴板，页面内已提供用途说明；

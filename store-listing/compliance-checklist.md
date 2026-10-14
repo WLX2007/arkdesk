@@ -4,7 +4,7 @@
 
 ## A. 法律义务（AGPL-3.0）
 
-- [ ] **A1. 公开源码**：创建 `github.com/xhenr/arkdesk` 公开仓库，包含：
+- [ ] **A1. 公开源码**：✅ 仓库已创建：`github.com/WLX2007/arkdesk`，包含：
   - Rust 核心（rustdesk4ohos，含 AGPL LICENCE 全文）；
   - `rustdesk-ohrs` HAR 构建脚本与补丁；
   - ArkTS 应用全部源码（RustDesk-ArkTS）；
@@ -22,10 +22,10 @@
 
 ## C. 隐私合规
 
-- [ ] **C1.** 隐私政策已发布至可公开访问的 URL（GitHub Pages 或自有域名）
-- [ ] **C2.** 应用内"隐私声明"入口指向**自己**的政策 URL（已改：`SettingsTab.ets` → `xhenr.github.io/arkdesk/privacy-policy-zh-CN`）
+- [ ] **C1.** 隐私政策已发布至可公开访问的 URL（GitHub Pages：`wlx2007.github.io/arkdesk/privacy-policy-zh-CN`）
+- [ ] **C2.** 应用内"隐私声明"入口指向**自己**的政策 URL（已改：`SettingsTab.ets` → `wlx2007.github.io/arkdesk/privacy-policy-zh-CN`）
 - [ ] **C3.** AGC 后台"隐私政策"字段填写同一 URL
-- [ ] **C4.** 替换占位邮箱 `support@xhenr.cloud` 为真实邮箱（两处：`privacy-policy-zh-CN.md`、`site/privacy-policy-zh-CN.html`）
+- [ ] **C4.** ~~替换占位邮箱~~ ✅ 已使用 wlx20070108@qq.com（两处：`privacy-policy-zh-CN.md`、`site/privacy-policy-zh-CN.html`）
 - [ ] **C5.** 隐私协议门控（AppGalleryKit privacyManager）✅（`PrivacyConsentService.ets` 已实现）
 - [ ] **C6.** 权限用途说明：`READ_PASTEBOARD` 已配 `reason` 字符串 ✅
 
@@ -34,7 +34,7 @@
 - [ ] **D1.** 工信部 App 备案（需主体为企业/个人实名，域名完成 ICP 备案后，在 AGC 提交备案信息）
 - [ ] **D2.** 软件著作权登记证书（登记 ArkTS 层与修改部分，备注基于 AGPL 开源组件；AGC 上架需提供）
 - [ ] **D3.** 开发者账号实名认证（建议企业账号，远控工具类个人账号审核更严）
-- [ ] **D4.** 如域名 `xhenr.cloud` 用于落地页/政策，需完成该域名的 ICP 备案
+- [ ] **D4.** 如使用自有域名落地页/政策，需完成该域名的 ICP 备案（当前用 GitHub Pages，无此项）
 
 ## E. 技术与审核材料
 

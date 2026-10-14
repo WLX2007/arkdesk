@@ -15,8 +15,8 @@ import {
 } from '../../../services/controlled/ControlledHostTypes';
 
 const RUSTDESK_WEBSITE_URL: string = 'https://rustdesk.com';
-const ARKDESK_PRIVACY_URL: string = 'https://xhenr.github.io/arkdesk/privacy-policy-zh-CN';
-const ARKDESK_SOURCE_URL: string = 'https://github.com/xhenr/arkdesk';
+const ARKDESK_PRIVACY_URL: string = 'https://wlx2007.github.io/arkdesk/privacy-policy-zh-CN';
+const ARKDESK_SOURCE_URL: string = 'https://github.com/WLX2007/arkdesk';
 const RUSTDESK_PRIVACY_URL: string = 'https://rustdesk.com/privacy.html';
 
 type SettingsSection = 'tutorial' | 'server' | 'account'
