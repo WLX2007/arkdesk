@@ -1,6 +1,6 @@
-# RustDesk HarmonyOS NEXT
+# ArkDesk HarmonyOS NEXT
 
-> 基于 HarmonyOS 原生壳工程 + RustDesk Rust 内核 HAR 的跨端远程控制客户端
+> 版本 **0.9.0** ｜ 基于 HarmonyOS 原生壳工程 + RustDesk Rust 内核 HAR 的跨端远程控制客户端
 
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2%20(API%2022)-8A2BE2)](https://developer.harmonyos.com)
 [![ArkTS](https://img.shields.io/badge/ArkTS-Native-blue)](https://developer.harmonyos.com)
@@ -23,7 +23,7 @@
 rustdesk_arkts_app/
 │
 ├── AppScope/                         # 应用级配置（包名、图标、版本）
-│   ├── app.json5                     # 应用元信息 (bundleName = top.frankhan.resk)
+│   ├── app.json5                     # 应用元信息 (bundleName = top.frankhan.arkdesk)
 │   └── resources/
 │       └── base/
 │           ├── element/              # 应用级字符串资源
@@ -173,7 +173,7 @@ entry/build/default/outputs/default/entry-default-signed.hap
 
 ```bash
 hdc install entry/build/default/outputs/default/entry-default-signed.hap
-hdc shell aa start -b top.frankhan.resk -m entry -a EntryAbility
+hdc shell aa start -b top.frankhan.arkdesk -m entry -a EntryAbility
 ```
 
 ## 🧩 RustDesk 内核 HAR 开发说明

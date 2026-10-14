@@ -15,7 +15,7 @@ const HANDOFF_VERSION = 1;
 const HANDOFF_TTL_MS = 120000;
 const MAX_HANDOFF_PAYLOAD_LENGTH = 24576;
 const MAX_CONSUMED_NONCES = 64;
-const HANDOFF_SCHEME = 'resk:';
+const HANDOFF_SCHEME = 'arkdesk:';
 const HANDOFF_HOST = 'handoff';
 const HANDOFF_PATH = '/remote';
 const DOMAIN = 0xFF00;
@@ -148,7 +148,7 @@ export class RemoteSessionHandoffService {
     return new systemShare.SharedData({
       utd: utd.UniformDataType.HYPERLINK,
       content: link,
-      title: 'RustDesk 一次性远控',
+      title: 'ArkDesk 一次性远控',
       description: '在另一台设备上继续当前远控会话',
     });
   }
@@ -193,7 +193,7 @@ export class RemoteSessionHandoffService {
 
   private static buildDeepLink(envelope: RemoteSessionHandoffEnvelope): string | undefined {
     try {
-      const link = url.URL.parseURL('resk://handoff/remote');
+      const link = url.URL.parseURL('arkdesk://handoff/remote');
       link.params.set('payload', JSON.stringify(envelope));
       return link.toString();
     } catch (_) {

@@ -724,13 +724,13 @@ export struct SettingsTab {
 
       Column() {
         Row({ space: 12 }) {
-          Image($r('app.media.resk'))
+          Image($r('app.media.arkdesk'))
             .width(46)
             .height(46)
             .borderRadius(12);
 
           Column({ space: 3 }) {
-            Text('Resk')
+            Text('ArkDesk')
               .fontSize(15)
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_primary'));

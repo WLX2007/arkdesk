@@ -25,7 +25,7 @@
         "srcEntry": "./ets/entryability/EntryAbility.ets",
         "description": "$string:EntryAbility_desc",
         "label": "$string:EntryAbility_label",
-        "icon": "$media:resk",
+        "icon": "$media:layered_image",
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
         "orientation": "follow_desktop",
@@ -54,7 +54,7 @@
             ],
             "uris": [
               {
-                "scheme": "resk",
+                "scheme": "arkdesk",
                 "host": "handoff",
                 "path": "remote"
               }
@@ -67,7 +67,7 @@
         "srcEntry": "./ets/backgroundability/StatusBarBackgroundAbility.ets",
         "description": "$string:EntryAbility_desc",
         "label": "$string:EntryAbility_label",
-        "icon": "$media:resk",
+        "icon": "$media:layered_image",
         "startWindowIcon": "$media:startIcon",
         "startWindowBackground": "$color:start_window_background",
         "exported": false
@@ -80,29 +80,29 @@
       {
         "name": "ohos.permission.INTERNET",
         "usedScene": {
+          "when": "inuse",
           "abilities": [
             "EntryAbility"
-          ],
-          "when": "inuse"
+          ]
         }
       },
       {
         "name": "ohos.permission.READ_PASTEBOARD",
         "reason": "$string:read_pasteboard_permission_reason",
         "usedScene": {
+          "when": "inuse",
           "abilities": [
             "EntryAbility"
-          ],
-          "when": "inuse"
+          ]
         }
       },
       {
         "name": "ohos.permission.INTERCEPT_INPUT_EVENT",
         "usedScene": {
+          "when": "inuse",
           "abilities": [
             "EntryAbility"
-          ],
-          "when": "inuse"
+          ]
         }
       }
     ]

@@ -459,13 +459,13 @@ export class RustDeskMainBridge {
     const relayError = String(errors.relayServer ?? '').trim();
     const apiError = String(errors.apiServer ?? '').trim();
     if (idError.length > 0) {
-      details.push(`ID Server: ${idError}`);
+      details.push(`ID 服务器: ${idError}`);
     }
     if (relayError.length > 0) {
-      details.push(`Relay Server: ${relayError}`);
+      details.push(`中继服务器: ${relayError}`);
     }
     if (apiError.length > 0) {
-      details.push(`API Server: ${apiError}`);
+      details.push(`API 服务器: ${apiError}`);
     }
     return details.length > 0 ? details.join(' · ') : message;
   }

@@ -8691,11 +8691,11 @@ struct RustDeskIndex {
   private FreeWindowTitleBar() {
     Row() {
       Row({ space: 9 }) {
-        Image($r('app.media.resk'))
+        Image($r('app.media.arkdesk'))
           .width(20)
           .height(20)
           .objectFit(ImageFit.Contain)
-        Text('RustDesk')
+        Text('ArkDesk')
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_primary'))

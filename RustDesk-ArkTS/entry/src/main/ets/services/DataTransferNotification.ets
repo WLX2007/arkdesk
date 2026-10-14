@@ -17,7 +17,7 @@ function activeFileName(items: TransferItem[]): string {
       return item.fileName;
     }
   }
-  return items.length > 0 ? items[0].fileName : 'RustDesk';
+  return items.length > 0 ? items[0].fileName : 'ArkDesk';
 }
 
 export class DataTransferNotification {
@@ -27,7 +27,7 @@ export class DataTransferNotification {
     const transferPercent = TransferProgress.percent(state.transfers);
     const hasActiveTransfer = activeTransferCount > 0;
     const progress = hasActiveTransfer ? (transferPercent ?? 0) : state.heartbeatProgress;
-    const title = hasActiveTransfer ? 'RustDesk 文件传输' : 'RustDesk 远程连接';
+    const title = hasActiveTransfer ? 'ArkDesk 文件传输' : 'ArkDesk 远程连接';
     const text = DataTransferNotification.textFor(state, activeTransferCount, transferPercent);
     const fileName = hasActiveTransfer ? activeFileName(state.transfers) :
       DataTransferNotification.sessionNameFor(state);

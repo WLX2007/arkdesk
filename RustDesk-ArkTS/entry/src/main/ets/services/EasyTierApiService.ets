@@ -24,7 +24,7 @@ export const EASYTIER_ABILITY_NAME = 'EntryAbility';
 export const EASYTIER_APP_IDENTIFIER = '6917581172490635834';
 
 export const EASYTIER_API_REQUEST_URI =
-  'datashareproxy://top.frankhan.resk/easytier_api/v2/start_request';
+  'datashareproxy://cloud.xhenr.arkdesk/easytier_api/v2/start_request';
 export const EASYTIER_API_RESULT_URI =
   'datashareproxy://top.frankhan.easytier/third_party_api/v2/start_result/rustdesk';
 export const EASYTIER_SNAPSHOT_URI =

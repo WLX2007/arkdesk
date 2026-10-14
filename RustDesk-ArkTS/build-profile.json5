@@ -42,11 +42,11 @@
         "material": {
           "certpath": "C:\\Users\\WLX\\.ohos\\config\\default_RustDesk-ArkTS_gxlQs9vEjmwW5B4MjfeIG6iYO_WGwO4FusRo1KsjrEA=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001BA8584C5B85A8308B484234C4203681003E1D3656FEDEBB09358D6383A42714C899D0D75DDEA7F3",
+          "keyPassword": "0000001A5F2EEE369AB2D9CF71A7FD3606257871EFC66D7999CE99BE9762FE3EDBDF135B00489F7C7690",
           "profile": "C:\\Users\\WLX\\.ohos\\config\\default_RustDesk-ArkTS_gxlQs9vEjmwW5B4MjfeIG6iYO_WGwO4FusRo1KsjrEA=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "C:\\Users\\WLX\\.ohos\\config\\default_RustDesk-ArkTS_gxlQs9vEjmwW5B4MjfeIG6iYO_WGwO4FusRo1KsjrEA=.p12",
-          "storePassword": "0000001B111744B1CEFB6FED45459E15D70FC1A2322F6DE1560A507DA4E79A38FB98D3623D85CC98F3A683"
+          "storePassword": "0000001AB063082B51FE30CE3C9F79A6203D521FFF19D2654B9E8C5609955D966DAA21700CF5205F6D66"
         }
       }
     ]

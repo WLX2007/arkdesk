@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: CorelDRAW 2026 (评估版) -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1024mm" height="1024mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+viewBox="0 0 26881.61 26881.61"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
+ <defs>
+  <style type="text/css">
+   <![CDATA[
+    .fil6 {fill:none;fill-rule:nonzero}
+    .fil1 {fill:#2A6DB5;fill-rule:nonzero}
+    .fil5 {fill:url(#id0);fill-rule:nonzero}
+    .fil0 {fill:url(#id1);fill-rule:nonzero}
+    .fil2 {fill:url(#id2);fill-rule:nonzero}
+    .fil3 {fill:url(#id3);fill-rule:nonzero}
+    .fil4 {fill:url(#id4);fill-rule:nonzero}
+   ]]>
+  </style>
+  <linearGradient id="id0" gradientUnits="userSpaceOnUse" x1="21229.61" y1="3300.75" x2="23007.7" y2="6856.95">
+   <stop offset="0" style="stop-opacity:1; stop-color:#7BF0CE"/>
+   <stop offset="1" style="stop-opacity:1; stop-color:#33CB9C"/>
+  </linearGradient>
+  <linearGradient id="id1" gradientUnits="userSpaceOnUse" x1="7273" y1="6987.32" x2="19830.87" y2="21045.46">
+   <stop offset="0" style="stop-opacity:1; stop-color:white"/>
+   <stop offset="1" style="stop-opacity:1; stop-color:#E2EEFB"/>
+  </linearGradient>
+  <linearGradient id="id2" gradientUnits="userSpaceOnUse" xlink:href="#id1" x1="7273" y1="6987.32" x2="19830.87" y2="21045.46">
+  </linearGradient>
+  <linearGradient id="id3" gradientUnits="userSpaceOnUse" xlink:href="#id1" x1="7273" y1="6987.32" x2="19830.87" y2="21045.46">
+  </linearGradient>
+  <radialGradient id="id4" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1 -0 -0 1 0 0)" cx="22118.67" cy="5078.84" r="916.84" fx="22118.67" fy="5078.84">
+   <stop offset="0" style="stop-opacity:0.521569; stop-color:#5FE7BC"/>
+   <stop offset="0.501961" style="stop-opacity:0.168627; stop-color:#5FE7BC"/>
+   <stop offset="1" style="stop-opacity:0; stop-color:#5FE7BC"/>
+  </radialGradient>
+ </defs>
+ <g id="圖層_x0020_1">
+  <metadata id="CorelCorpID_0Corel-Layer"/>
+  <g>
+   <path class="fil0" d="M8606.58 6987.32l9668.45 0c1073.9,0 1944.8,870.9 1944.8,1944.8l0 6667.9c0,1073.89 -870.9,1944.79 -1944.8,1944.79l-9668.45 0.01c-1073.89,-0.01 -1944.79,-870.91 -1944.79,-1944.81l-0.01 -6667.89c0.01,-1073.9 870.91,-1944.8 1944.81,-1944.8z"/>
+   <polygon class="fil1" points="13440.8,8654.29 17274.85,16044.54 15274.48,16044.54 13440.8,12099.37 11607.13,16044.54 9606.76,16044.54 "/>
+   <path class="fil2" d="M12607.32 12988.43l1666.97 0c460.24,0 833.49,373.24 833.49,833.49l0 0c0,460.23 -373.24,833.48 -833.49,833.48l-1666.97 0.01c-460.23,-0.01 -833.48,-373.26 -833.48,-833.49l-0.01 0c0.01,-460.24 373.26,-833.49 833.5,-833.49z"/>
+   <path class="fil3" d="M10162.42 19767.45l6556.76 0c429.56,-0.01 777.92,348.35 777.92,777.91l0.01 0.01c-0.01,429.55 -348.37,777.91 -777.93,777.91l-6556.76 0.02c-429.55,-0.02 -777.91,-348.38 -777.91,-777.94l-0.02 0.01c0.02,-429.57 348.38,-777.93 777.94,-777.93z"/>
+   <circle class="fil4" cx="22118.67" cy="5078.84" r="3667.34"/>
+   <circle class="fil5" cx="22118.67" cy="5078.84" r="1778.1"/>
+   <polygon class="fil6" points="-0.01,26881.62 26881.61,26881.62 26881.61,0 -0.01,0 "/>
+   <polygon class="fil6" points="-0.01,26881.62 26881.61,26881.62 26881.61,0 -0.01,0 "/>
+   <polygon class="fil6" points="-0.01,26881.62 26881.61,26881.62 26881.61,0 -0.01,0 "/>
+  </g>
+ </g>
+</svg>

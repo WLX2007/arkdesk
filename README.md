@@ -1,6 +1,7 @@
-# RustDesk HOMS — HarmonyOS 原生 RustDesk 客户端
+# ArkDesk — HarmonyOS 原生远程桌面客户端
 
-基于 [FrankHan052176/RustDesk-ArkTS](https://github.com/FrankHan052176/RustDesk-ArkTS)（RustDesk OHOS 移植）二次开发的鸿蒙原生远程控制客户端。
+> 版本 **0.9.0** ｜ 基于 [FrankHan052176/RustDesk-ArkTS](https://github.com/FrankHan052176/RustDesk-ArkTS)（RustDesk OHOS 移植）二次开发的鸿蒙原生远程控制客户端。
+> 应用标识：`top.frankhan.arkdesk` ｜ URL Scheme：`arkdesk://` ｜ 底层协议内核仍为 RustDesk。
 
 ## 仓库结构
 

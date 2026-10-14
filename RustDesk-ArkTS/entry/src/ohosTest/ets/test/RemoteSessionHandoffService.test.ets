@@ -99,7 +99,7 @@ export default function remoteSessionHandoffServiceTest(): void {
       const records = data.getRecords();
       expect(records.length).assertEqual(1);
       const content = records[0].content ?? '';
-      expect(content.startsWith('resk://handoff/remote?')).assertEqual(true);
+      expect(content.startsWith('arkdesk://handoff/remote?')).assertEqual(true);
       expect(content.includes('v=1')).assertEqual(true);
       expect(content.includes('target=123456789')).assertEqual(true);
       expect(content.includes('source=gesture')).assertEqual(true);

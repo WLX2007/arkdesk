@@ -102,11 +102,11 @@ export class StatusBarKeepAliveService {
         quickOperation: {
           abilityName: '',
           moduleName: ENTRY_MODULE_NAME,
-          title: 'RustDesk',
+          title: 'ArkDesk',
           height: 1,
         },
         statusBarGroupMenu: [[{
-          title: '打开 RustDesk',
+          title: '打开 ArkDesk',
           menuAction: {
             abilityName: ENTRY_ABILITY_NAME,
             moduleName: ENTRY_MODULE_NAME,
@@ -114,7 +114,7 @@ export class StatusBarKeepAliveService {
             notifyOnly: true,
           },
         }]],
-        hoverTips: 'RustDesk 远程连接',
+        hoverTips: 'ArkDesk 远程连接',
       };
       statusBarManager.addToStatusBar(this.context, item);
       statusBarManager.on('statusBarIconClick', this.iconClickCallback);

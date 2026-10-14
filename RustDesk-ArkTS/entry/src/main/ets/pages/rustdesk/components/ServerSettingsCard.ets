@@ -262,17 +262,17 @@ export struct ServerSettingsCard {
 
   private endpointErrorPrefix(controlId: string): string {
     if (controlId === 'id-server') {
-      return 'ID Server:';
+      return 'ID 服务器:';
     }
     if (controlId === 'relay-server') {
-      return 'Relay Server:';
+      return '中继服务器:';
     }
-    return 'API Server:';
+    return 'API 服务器:';
   }
 
   private hasEndpointErrorDetails(): boolean {
-    return this.config.message.includes('ID Server:') || this.config.message.includes('Relay Server:') ||
-      this.config.message.includes('API Server:');
+    return this.config.message.includes('ID 服务器:') || this.config.message.includes('中继服务器:') ||
+      this.config.message.includes('API 服务器:');
   }
 
   private endpointDisplayState(controlId: string, value: string,
