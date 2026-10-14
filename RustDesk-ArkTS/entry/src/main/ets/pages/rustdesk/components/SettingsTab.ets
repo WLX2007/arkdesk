@@ -86,6 +86,36 @@ export struct SettingsTab {
   @Local appVersionName: string = '--';
   @Local sessionDefaultsDraft: SessionDefaults = new SessionDefaults();
   private draftInitialized: boolean = false;
+  // ── 入口摘要镜像状态 ──
+  // @Builder 参数按值捕获，不建立响应式依赖：入口行小字若直接读 @Param 对象字段，
+  // 父组件回流后也不会重新求值（表现为重启才刷新）。因此把所有动态文案依赖的
+  // 字段镜像为 @Local 原始值，@Monitor 同步，弹层关闭时兜底刷新。
+  @Local serverMirrorMode: string = '';
+  @Local serverMirrorIdServer: string = '';
+  @Local serverMirrorReachable: boolean = false;
+  @Local serverMirrorResultState: string = 'idle';
+  @Local accountMirrorLoggedIn: boolean = false;
+  @Local accountMirrorDisplayName: string = '';
+  @Local accountMirrorName: string = '';
+  @Local accountMirrorSyncing: boolean = false;
+  @Local accountMirrorBusy: boolean = false;
+  @Local accountMirrorApiServer: string = '';
+  @Local defaultsMirrorTouchMode: boolean = false;
+  @Local defaultsMirrorRelativeMouse: boolean = false;
+  @Local defaultsMirrorQualityPreset: string = '';
+  @Local defaultsMirrorCustomQuality: number = 0;
+  @Local defaultsMirrorCustomFps: number = 0;
+  @Local defaultsMirrorPreferredCodec: string = '';
+  @Local defaultsMirrorAudio: boolean = false;
+  @Local defaultsMirrorClipboard: boolean = false;
+  @Local defaultsMirrorGestures: boolean = false;
+  @Local defaultsMirrorOtherCount: number = 0;
+  @Local securityMirrorPermanentPassword: boolean = false;
+  @Local securityMirrorTwoFactorEnabled: boolean = false;
+  @Local securityMirrorTrustedDevicesEnabled: boolean = false;
+  @Local securityMirrorTrustedDeviceCount: number = 0;
+  @Local decoderMirrorCount: number = 0;
+  @Local errorMirrorText: string = '';
   @Param scroller: Scroller = new Scroller();
   private sheetScroller: Scroller = new Scroller();
   private handledTutorialLaunchToken: number = 0;
@@ -118,6 +148,7 @@ export struct SettingsTab {
   @Event onTutorialAutoOpened: () => void = () => {};
 
   aboutToAppear(): void {
+    this.refreshEntryMirrors();
     void this.loadAppVersion();
     setTimeout((): void => this.openRequestedTutorialIfNeeded(), 0);
   }
@@ -136,6 +167,51 @@ export struct SettingsTab {
   @Monitor('tutorialLaunchToken')
   private onTutorialLaunchTokenChanged(_monitor: IMonitor): void {
     this.openRequestedTutorialIfNeeded();
+  }
+
+  @Monitor('serverConfig', 'accountState', 'sessionDefaults', 'controlledHostState',
+    'controlledTwoFactorState', 'decoderCapabilities', 'errorText')
+  private onEntryStateMonitorChanged(_monitor: IMonitor): void {
+    this.refreshEntryMirrors();
+  }
+
+  private refreshEntryMirrors(): void {
+    this.serverMirrorMode = this.serverConfig.mode;
+    this.serverMirrorIdServer = this.serverConfig.idServer.trim();
+    this.serverMirrorReachable = this.serverConfig.remoteReachable;
+    this.serverMirrorResultState = this.serverConfig.resultState;
+    this.accountMirrorLoggedIn = this.accountState.loggedIn;
+    this.accountMirrorDisplayName = this.accountState.displayName.trim();
+    this.accountMirrorName = this.accountState.name.trim();
+    this.accountMirrorSyncing = this.accountState.syncing;
+    this.accountMirrorBusy = this.accountState.busy;
+    this.accountMirrorApiServer = this.accountState.apiServer.trim();
+    this.defaultsMirrorTouchMode = this.sessionDefaults.touchMode;
+    this.defaultsMirrorRelativeMouse = this.sessionDefaults.relativeMouseMode;
+    this.defaultsMirrorQualityPreset = this.sessionDefaults.qualityPreset;
+    this.defaultsMirrorCustomQuality = this.sessionDefaults.customQuality;
+    this.defaultsMirrorCustomFps = this.sessionDefaults.customFps;
+    this.defaultsMirrorPreferredCodec = this.sessionDefaults.preferredCodec.trim();
+    this.defaultsMirrorAudio = this.sessionDefaults.audioEnabled;
+    this.defaultsMirrorClipboard = this.sessionDefaults.clipboardEnabled;
+    this.defaultsMirrorGestures = this.sessionDefaults.gesturesEnabled;
+    let otherCount = 0;
+    if (this.sessionDefaults.audioEnabled) {
+      otherCount += 1;
+    }
+    if (this.sessionDefaults.clipboardEnabled) {
+      otherCount += 1;
+    }
+    if (this.sessionDefaults.gesturesEnabled) {
+      otherCount += 1;
+    }
+    this.defaultsMirrorOtherCount = otherCount;
+    this.securityMirrorPermanentPassword = this.controlledHostState.permanentPasswordSet;
+    this.securityMirrorTwoFactorEnabled = this.controlledTwoFactorState.enabled;
+    this.securityMirrorTrustedDevicesEnabled = this.controlledTwoFactorState.trustedDevicesEnabled;
+    this.securityMirrorTrustedDeviceCount = this.controlledTwoFactorState.trustedDevices.length;
+    this.decoderMirrorCount = this.decoderCapabilities.length;
+    this.errorMirrorText = this.errorText.trim();
   }
 
   private openRequestedTutorialIfNeeded(): void {
@@ -242,6 +318,7 @@ export struct SettingsTab {
   }
 
   private closeSettingsSheet(): void {
+    this.refreshEntryMirrors();
     this.settingsSheetVisible = false;
   }
 
@@ -273,43 +350,42 @@ export struct SettingsTab {
   // ── 入口摘要文案 ────────────────────────────
 
   private serverSummary(): string {
-    if (this.serverConfig.mode === 'official') {
+    if (this.serverMirrorMode === 'official') {
       return '官方服务器';
     }
-    const idServer = this.serverConfig.idServer.trim();
-    return idServer.length > 0 ? idServer : '自定义服务器';
+    return this.serverMirrorIdServer.length > 0 ? this.serverMirrorIdServer : '自定义服务器';
   }
 
   private serverDetail(): string {
-    if (this.serverConfig.mode === 'official') {
+    if (this.serverMirrorMode === 'official') {
       return '由内核自动选择公共节点';
     }
-    if (this.serverConfig.remoteReachable) {
+    if (this.serverMirrorReachable) {
       return '地址解析通过';
     }
-    if (this.serverConfig.resultState === 'mode-draft') {
+    if (this.serverMirrorResultState === 'mode-draft') {
       return '待保存并应用';
     }
     return '尚未测试连接';
   }
 
   private serverTone(): ResourceColor {
-    if (this.serverConfig.mode === 'official' || this.serverConfig.remoteReachable) {
+    if (this.serverMirrorMode === 'official' || this.serverMirrorReachable) {
       return $r('app.color.success');
     }
-    if (this.serverConfig.resultState === 'mode-draft') {
+    if (this.serverMirrorResultState === 'mode-draft') {
       return $r('app.color.warning');
     }
     return $r('app.color.text_tertiary');
   }
 
   private accountSummary(): string {
-    if (this.accountState.loggedIn) {
-      if (this.accountState.displayName.trim().length > 0) {
-        return this.accountState.displayName.trim();
+    if (this.accountMirrorLoggedIn) {
+      if (this.accountMirrorDisplayName.length > 0) {
+        return this.accountMirrorDisplayName;
       }
-      if (this.accountState.name.trim().length > 0) {
-        return this.accountState.name.trim();
+      if (this.accountMirrorName.length > 0) {
+        return this.accountMirrorName;
       }
       return '已登录';
     }
@@ -317,53 +393,53 @@ export struct SettingsTab {
   }
 
   private accountDetail(): string {
-    if (this.accountState.syncing) {
+    if (this.accountMirrorSyncing) {
       return '正在同步通讯簿…';
     }
-    if (this.accountState.busy) {
+    if (this.accountMirrorBusy) {
       return '正在登录…';
     }
-    if (this.accountState.loggedIn) {
+    if (this.accountMirrorLoggedIn) {
       return '通讯簿已同步';
     }
-    if (this.accountState.apiServer.trim().length === 0) {
+    if (this.accountMirrorApiServer.length === 0) {
       return '当前未提供账户 API';
     }
     return '登录后可同步通讯簿';
   }
 
   private accountTone(): ResourceColor {
-    if (this.accountState.busy || this.accountState.syncing) {
+    if (this.accountMirrorBusy || this.accountMirrorSyncing) {
       return $r('app.color.brand_primary');
     }
-    if (this.accountState.loggedIn) {
+    if (this.accountMirrorLoggedIn) {
       return $r('app.color.success');
     }
     return $r('app.color.text_tertiary');
   }
 
   private inputSummary(): string {
-    if (this.sessionDefaults.touchMode) {
+    if (this.defaultsMirrorTouchMode) {
       return '触控模式';
     }
-    return this.sessionDefaults.relativeMouseMode ? '相对鼠标' : '鼠标模式';
+    return this.defaultsMirrorRelativeMouse ? '相对鼠标' : '鼠标模式';
   }
 
   private qualitySummary(): string {
-    if (this.sessionDefaults.qualityPreset === 'best') {
+    if (this.defaultsMirrorQualityPreset === 'best') {
       return '最佳画质';
     }
-    if (this.sessionDefaults.qualityPreset === 'low') {
+    if (this.defaultsMirrorQualityPreset === 'low') {
       return '流畅优先';
     }
-    if (this.sessionDefaults.qualityPreset === 'custom') {
-      return `自定义 · ${this.sessionDefaults.customQuality}% · ${this.sessionDefaults.customFps} FPS`;
+    if (this.defaultsMirrorQualityPreset === 'custom') {
+      return `自定义 · ${this.defaultsMirrorCustomQuality}% · ${this.defaultsMirrorCustomFps} FPS`;
     }
     return '均衡画质';
   }
 
   private qualityDetail(): string {
-    const codec = this.sessionDefaults.preferredCodec.trim().toUpperCase();
+    const codec = this.defaultsMirrorPreferredCodec.toUpperCase();
     if (codec.length > 0 && codec !== 'AUTO') {
       return `首选编码器 ${codec}`;
     }
@@ -371,29 +447,29 @@ export struct SettingsTab {
   }
 
   private securitySummary(): string {
-    if (this.controlledTwoFactorState.enabled) {
+    if (this.securityMirrorTwoFactorEnabled) {
       return '双重认证已启用';
     }
-    if (this.controlledHostState.permanentPasswordSet) {
+    if (this.securityMirrorPermanentPassword) {
       return '固定密码已设置';
     }
     return '仅使用临时密码';
   }
 
   private securityDetail(): string {
-    if (this.controlledTwoFactorState.enabled) {
-      return this.controlledTwoFactorState.trustedDevicesEnabled
-        ? `受信任设备 ${this.controlledTwoFactorState.trustedDevices.length} 台`
+    if (this.securityMirrorTwoFactorEnabled) {
+      return this.securityMirrorTrustedDevicesEnabled
+        ? `受信任设备 ${this.securityMirrorTrustedDeviceCount} 台`
         : '受信任设备未启用';
     }
     return '密码、2FA 与受信任设备';
   }
 
   private securityTone(): ResourceColor {
-    if (this.controlledTwoFactorState.enabled) {
+    if (this.securityMirrorTwoFactorEnabled) {
       return $r('app.color.success');
     }
-    if (this.controlledHostState.permanentPasswordSet) {
+    if (this.securityMirrorPermanentPassword) {
       return $r('app.color.warning');
     }
     return $r('app.color.text_tertiary');
@@ -401,27 +477,27 @@ export struct SettingsTab {
 
   private otherSummary(): string {
     const enabled: string[] = [];
-    if (this.sessionDefaults.audioEnabled) {
+    if (this.defaultsMirrorAudio) {
       enabled.push('音频');
     }
-    if (this.sessionDefaults.clipboardEnabled) {
+    if (this.defaultsMirrorClipboard) {
       enabled.push('剪贴板');
     }
-    if (this.sessionDefaults.gesturesEnabled) {
+    if (this.defaultsMirrorGestures) {
       enabled.push('手势');
     }
     return enabled.length > 0 ? enabled.join(' · ') : '全部关闭';
   }
 
   private diagnosticSummary(): string {
-    if (this.hasError()) {
+    if (this.errorMirrorText.length > 0) {
       return '检测到需要处理的运行日志';
     }
-    return `${this.decoderCapabilities.length} 项视频解码能力`;
+    return `${this.decoderMirrorCount} 项视频解码能力`;
   }
 
   private diagnosticTone(): ResourceColor {
-    return this.hasError() ? $r('app.color.error') : $r('app.color.text_tertiary');
+    return this.errorMirrorText.length > 0 ? $r('app.color.error') : $r('app.color.text_tertiary');
   }
 
   // ── 入口卡片 ────────────────────────────────
@@ -439,19 +515,88 @@ export struct SettingsTab {
     .backgroundColor(soft);
   }
 
+  // 注意：动态文案（summary/detail/tone）不能作为 @Builder 参数传入——
+  // @Builder 参数按值捕获，不建立响应式依赖，会导致入口小字只在重启后刷新。
+  // 因此这里只传静态参数，动态文案在 Builder 体内按 section 直接读取镜像状态计算。
+  private entrySummary(section: SettingsSection): string {
+    if (section === 'server') {
+      return this.serverSummary();
+    }
+    if (section === 'account') {
+      return this.accountSummary();
+    }
+    if (section === 'session_input') {
+      return this.inputSummary();
+    }
+    if (section === 'session_quality') {
+      return this.qualitySummary();
+    }
+    if (section === 'session_security') {
+      return this.securitySummary();
+    }
+    if (section === 'session_other') {
+      return this.otherSummary();
+    }
+    if (section === 'diagnostics') {
+      return `版本 ${this.appVersionName}`;
+    }
+    return '使用指南';
+  }
+
+  private entryDetail(section: SettingsSection): string {
+    if (section === 'server') {
+      return this.serverDetail();
+    }
+    if (section === 'account') {
+      return this.accountDetail();
+    }
+    if (section === 'session_quality') {
+      return this.qualityDetail();
+    }
+    if (section === 'session_security') {
+      return this.securityDetail();
+    }
+    if (section === 'session_input') {
+      return '控制方式与右键手势';
+    }
+    if (section === 'session_other') {
+      return '会话能力与工具栏行为';
+    }
+    if (section === 'tutorial') {
+      return '从首次连接到多会话、文件与授控';
+    }
+    return this.diagnosticSummary();
+  }
+
+  private entryTone(section: SettingsSection): ResourceColor {
+    if (section === 'server') {
+      return this.serverTone();
+    }
+    if (section === 'account') {
+      return this.accountTone();
+    }
+    if (section === 'session_security') {
+      return this.securityTone();
+    }
+    if (section === 'diagnostics') {
+      return this.diagnosticTone();
+    }
+    if (section === 'session_input' || section === 'session_quality') {
+      return $r('app.color.brand_primary');
+    }
+    return $r('app.color.text_secondary');
+  }
+
   @Builder
   private SettingsEntry(
     section: SettingsSection,
     symbol: Resource,
     title: ResourceStr,
-    summary: string,
-    detail: string,
-    tone: ResourceColor,
     soft: ResourceColor,
     isLast: boolean,
   ) {
     Row({ space: 12 }) {
-      this.EntryIcon(symbol, tone, soft);
+      this.EntryIcon(symbol, this.entryTone(section), soft);
 
       Column({ space: 3 }) {
         Row({ space: 8 }) {
@@ -462,15 +607,15 @@ export struct SettingsTab {
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
 
-          Text(summary)
+          Text(this.entrySummary(section))
             .fontSize(12)
-            .fontColor(tone)
+            .fontColor(this.entryTone(section))
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis });
         }
         .alignItems(VerticalAlign.Center);
 
-        Text(detail)
+        Text(this.entryDetail(section))
           .width('100%')
           .fontSize(12)
           .fontColor($r('app.color.text_tertiary'))
@@ -515,9 +660,6 @@ export struct SettingsTab {
           'server',
           $r('sys.symbol.wifi_router'),
           $r('app.string.settings_server_title'),
-          this.serverSummary(),
-          this.serverDetail(),
-          this.serverTone(),
           $r('app.color.brand_primary_soft'),
           false,
         );
@@ -525,9 +667,6 @@ export struct SettingsTab {
           'account',
           $r('sys.symbol.person_crop_circle_fill'),
           '账户',
-          this.accountSummary(),
-          this.accountDetail(),
-          this.accountTone(),
           $r('app.color.brand_primary_soft'),
           true,
         );
@@ -557,9 +696,6 @@ export struct SettingsTab {
           'session_input',
           $r('sys.symbol.hand_tap'),
           '输入模式',
-          this.inputSummary(),
-          '控制方式与右键手势',
-          $r('app.color.brand_primary'),
           $r('app.color.brand_primary_soft'),
           false,
         );
@@ -567,9 +703,6 @@ export struct SettingsTab {
           'session_quality',
           $r('sys.symbol.display'),
           '画质',
-          this.qualitySummary(),
-          this.qualityDetail(),
-          $r('app.color.brand_primary'),
           $r('app.color.brand_primary_soft'),
           false,
         );
@@ -577,9 +710,6 @@ export struct SettingsTab {
           'session_other',
           $r('sys.symbol.gearshape'),
           '其他',
-          this.otherSummary(),
-          '会话能力与工具栏行为',
-          $r('app.color.text_secondary'),
           $r('app.color.surface_secondary'),
           true,
         );
@@ -609,9 +739,6 @@ export struct SettingsTab {
           'session_security',
           $r('sys.symbol.lock_shield'),
           '本机访问安全',
-          this.securitySummary(),
-          this.securityDetail(),
-          this.securityTone(),
           $r('app.color.surface_secondary'),
           true,
         );
@@ -641,9 +768,6 @@ export struct SettingsTab {
           'tutorial',
           $r('sys.symbol.book'),
           $r('app.string.settings_tutorial_title'),
-          '使用指南',
-          '从首次连接到多会话、文件与授控',
-          $r('app.color.text_secondary'),
           $r('app.color.surface_secondary'),
           false,
         );
@@ -651,9 +775,6 @@ export struct SettingsTab {
           'diagnostics',
           $r('sys.symbol.stethoscope'),
           '诊断与关于',
-          `版本 ${this.appVersionName}`,
-          this.diagnosticSummary(),
-          this.diagnosticTone(),
           this.hasError() ? $r('app.color.error_soft') : $r('app.color.surface_secondary'),
           true,
         );
@@ -1045,9 +1166,11 @@ export struct SettingsTab {
       dragBar: false,
       backgroundColor: $r('app.color.background'),
       onWillDismiss: (_action: DismissSheetAction) => {
+        this.refreshEntryMirrors();
         this.settingsSheetVisible = false;
       },
       shouldDismiss: (_sheetDismiss: SheetDismiss) => {
+        this.refreshEntryMirrors();
         this.settingsSheetVisible = false;
       },
     })
