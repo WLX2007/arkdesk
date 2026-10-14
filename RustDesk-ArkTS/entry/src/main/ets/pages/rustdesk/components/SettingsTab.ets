@@ -15,6 +15,8 @@ import {
 } from '../../../services/controlled/ControlledHostTypes';
 
 const RUSTDESK_WEBSITE_URL: string = 'https://rustdesk.com';
+const ARKDESK_PRIVACY_URL: string = 'https://xhenr.github.io/arkdesk/privacy-policy-zh-CN';
+const ARKDESK_SOURCE_URL: string = 'https://github.com/xhenr/arkdesk';
 const RUSTDESK_PRIVACY_URL: string = 'https://rustdesk.com/privacy.html';
 
 type SettingsSection = 'tutorial' | 'server' | 'account'
@@ -873,7 +875,9 @@ export struct SettingsTab {
         this.LinkRow($r('app.string.settings_about_website'), true,
           () => this.openExternalLink(RUSTDESK_WEBSITE_URL));
         this.LinkRow($r('app.string.settings_about_privacy'), false,
-          () => this.openExternalLink(RUSTDESK_PRIVACY_URL));
+          () => this.openExternalLink(ARKDESK_PRIVACY_URL));
+        this.LinkRow($r('app.string.settings_about_source'), true,
+          () => this.openExternalLink(ARKDESK_SOURCE_URL));
       }
       .width('100%')
       .borderRadius(18)
